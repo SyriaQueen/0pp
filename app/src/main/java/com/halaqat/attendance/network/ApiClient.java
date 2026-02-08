@@ -8,8 +8,30 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
-    private static final String BASE_URL = "http://172.18.137.4:21316/api/"; // للمحاكي
-    // استخدم IP الفعلي للجهاز الحقيقي: "http://192.168.1.XXX:3000/api/"
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔧 قم بتغيير هذا السطر فقط حسب احتياجك:
+    // ═══════════════════════════════════════════════════════════════════
+    
+    // ✅ الخيار 1: استخدام Domain Name (الأفضل للإنتاج)
+   // private static final String BASE_URL = "https://example.com/api/";
+    
+    // ✅ الخيار 2: استخدام Domain بدون HTTPS
+    // private static final String BASE_URL = "http://example.com/api/";
+    
+    // ✅ الخيار 3: استخدام Subdomain
+    // private static final String BASE_URL = "https://api.example.com/";
+    
+    // ✅ الخيار 4: استخدام Port مخصص
+    private static final String BASE_URL = "http://fi11.bot-hosting.net:21316/api/";
+    
+    // ✅ الخيار 5: للمحاكي (Development)
+    // private static final String BASE_URL = "http://10.0.2.2:3000/api/";
+    
+    // ✅ الخيار 6: للجهاز الحقيقي (Development)
+    // private static final String BASE_URL = "http://192.168.1.5:3000/api/";
+    
+    // ═══════════════════════════════════════════════════════════════════
     
     private static Retrofit retrofit;
     private static ApiService apiService;
