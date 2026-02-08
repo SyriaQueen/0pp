@@ -8,7 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
-    private static final String BASE_URL = "https://405526.site.bot-hosting.cloud/api/"; // للمحاكي
+    private static final String BASE_URL = "http://172.18.137.4:21316/api/"; // للمحاكي
     // استخدم IP الفعلي للجهاز الحقيقي: "http://192.168.1.XXX:3000/api/"
     
     private static Retrofit retrofit;
