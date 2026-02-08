@@ -113,4 +113,4 @@ public class AttendanceMarkAdapter extends RecyclerView.Adapter<AttendanceMarkAd
             rbExcused = itemView.findViewById(R.id.rb_excused);
         }
     }
-}1
+}
