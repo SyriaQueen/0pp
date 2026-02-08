@@ -1,3 +1,4 @@
+// Keep the buildscript block (this is for Gradle plugins, not app dependencies)
 buildscript {
     repositories {
         google()
@@ -8,14 +9,14 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+// REMOVE THIS ENTIRE BLOCK:
+// allprojects {
+//    repositories {
+//        google()
+//        mavenCentral()
+//    }
+// }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
-
