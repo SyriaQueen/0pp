@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#1E88E5</color>
+    <color name="primary_dark">#1565C0</color>
+    <color name="primary_light">#42A5F5</color>
+    <color name="accent">#FF5722</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="gray_light">#F5F5F5</color>
+    <color name="gray_medium">#9E9E9E</color>
+    <color name="gray_dark">#424242</color>
+    
+    <!-- Dark Mode Colors -->
+    <color name="dark_background">#121212</color>
+    <color name="dark_surface">#1E1E1E</color>
+    <color name="dark_on_surface">#E0E0E0</color>
+    
+    <!-- Card Gradients -->
+    <color name="gradient_1_start">#667eea</color>
+    <color name="gradient_1_end">#764ba2</color>
+    <color name="gradient_2_start">#f093fb</color>
+    <color name="gradient_2_end">#f5576c</color>
+    <color name="gradient_3_start">#4facfe</color>
+    <color name="gradient_3_end">#00f2fe</color>
+    <color name="gradient_4_start">#43e97b</color>
+    <color name="gradient_4_end">#38f9d7</color>
+    <color name="gradient_5_start">#fa709a</color>
+    <color name="gradient_5_end">#fee140</color>
+    <color name="gradient_6_start">#30cfd0</color>
+    <color name="gradient_6_end">#330867</color>
+</resources>

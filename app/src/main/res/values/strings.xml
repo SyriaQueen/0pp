@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">نظام الحلقات</string>
+    <string name="login">تسجيل الدخول</string>
+    <string name="username">اسم المستخدم</string>
+    <string name="password">كلمة المرور</string>
+    <string name="logout">تسجيل الخروج</string>
+    <string name="manage_users">إدارة المستخدمين</string>
+    <string name="manage_halaqat">إدارة الحلقات</string>
+    <string name="manage_fawj">إدارة الأفواج</string>
+    <string name="mark_attendance">تسجيل الحضور</string>
+    <string name="view_reports">عرض التقارير</string>
+    <string name="change_password">تغيير كلمة المرور</string>
+    <string name="edit">تعديل</string>
+    <string name="delete">حذف</string>
+    <string name="add">إضافة</string>
+    <string name="save">حفظ</string>
+    <string name="cancel">إلغاء</string>
+    <string name="present">حاضر</string>
+    <string name="absent">غائب</string>
+    <string name="excused">إجازة</string>
+    
+    <string-array name="user_roles">
+        <item>Admin</item>
+        <item>Teacher</item>
+        <item>Parent</item>
+    </string-array>
+</resources>
