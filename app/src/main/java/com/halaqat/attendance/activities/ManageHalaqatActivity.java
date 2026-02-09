@@ -2,6 +2,7 @@ package com.halaqat.attendance.activities;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.*;
@@ -25,6 +26,8 @@ import retrofit2.Response;
 
 public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatAdapter.OnHalaqaActionListener {
     
+    private static final String TAG = "ManageHalaqatActivity";
+    
     private RecyclerView rvHalaqat;
     private ProgressBar progressBar;
     private TextView tvNoData;
@@ -47,11 +50,15 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
     }
     
     private void setupToolbar() {
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("إدارة الحلقات");
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        try {
+            Toolbar toolbar = findViewById(R.id.toolbar);
+            setSupportActionBar(toolbar);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle("إدارة الحلقات");
+                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting up toolbar", e);
         }
     }
     
@@ -69,93 +76,151 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
     }
     
     private void setupListeners() {
-        fabAdd.setOnClickListener(v -> showAddHalaqaDialog());
+        if (fabAdd != null) {
+            fabAdd.setOnClickListener(v -> showAddHalaqaDialog());
+        }
     }
     
     private void loadHalaqat() {
         showLoading(true);
         
-        ApiClient.getApiService().getHalaqat(prefManager.getAuthToken())
-                .enqueue(new Callback<ApiResponse<List<Halaqa>>>() {
-                    @Override
-                    public void onResponse(Call<ApiResponse<List<Halaqa>>> call, Response<ApiResponse<List<Halaqa>>> response) {
-                        showLoading(false);
-                        
-                        if (response.isSuccessful() && response.body() != null) {
-                            ApiResponse<List<Halaqa>> apiResponse = response.body();
-                            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                                List<Halaqa> halaqat = apiResponse.getData();
-                                if (halaqat.isEmpty()) {
-                                    showNoData(true);
+        String token = prefManager.getAuthToken();
+        if (token == null || token.isEmpty()) {
+            showLoading(false);
+            showError("خطأ في المصادقة");
+            return;
+        }
+        
+        Log.d(TAG, "Loading halaqat...");
+        
+        try {
+            ApiClient.getApiService().getHalaqat(token)
+                    .enqueue(new Callback<ApiResponse<List<Halaqa>>>() {
+                        @Override
+                        public void onResponse(Call<ApiResponse<List<Halaqa>>> call, 
+                                             Response<ApiResponse<List<Halaqa>>> response) {
+                            showLoading(false);
+                            
+                            if (response.isSuccessful() && response.body() != null) {
+                                ApiResponse<List<Halaqa>> apiResponse = response.body();
+                                
+                                if (apiResponse.isSuccess()) {
+                                    List<Halaqa> halaqat = apiResponse.getData();
+                                    
+                                    if (halaqat != null && !halaqat.isEmpty()) {
+                                        Log.d(TAG, "Loaded " + halaqat.size() + " halaqat");
+                                        showNoData(false);
+                                        adapter.updateData(halaqat);
+                                    } else {
+                                        showNoData(true);
+                                    }
                                 } else {
-                                    showNoData(false);
-                                    adapter.updateData(halaqat);
+                                    showError(apiResponse.getMessage());
                                 }
+                            } else {
+                                showError("خطأ في تحميل البيانات");
                             }
                         }
-                    }
-                    
-                    @Override
-                    public void onFailure(Call<ApiResponse<List<Halaqa>>> call, Throwable t) {
-                        showLoading(false);
-                        Toast.makeText(ManageHalaqatActivity.this, "خطأ في تحميل البيانات", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                        
+                        @Override
+                        public void onFailure(Call<ApiResponse<List<Halaqa>>> call, Throwable t) {
+                            showLoading(false);
+                            Log.e(TAG, "Error loading halaqat", t);
+                            showError("خطأ في الاتصال: " + t.getMessage());
+                        }
+                    });
+        } catch (Exception e) {
+            showLoading(false);
+            Log.e(TAG, "Exception loading halaqat", e);
+            showError("حدث خطأ: " + e.getMessage());
+        }
     }
     
     private void showAddHalaqaDialog() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_halaqa, null);
-        
-        EditText etName = dialogView.findViewById(R.id.et_name);
-        EditText etDescription = dialogView.findViewById(R.id.et_description);
-        
-        new AlertDialog.Builder(this)
-                .setTitle("إضافة حلقة جديدة")
-                .setView(dialogView)
-                .setPositiveButton("إضافة", (dialog, which) -> {
-                    String name = etName.getText().toString().trim();
-                    String description = etDescription.getText().toString().trim();
-                    
-                    if (name.isEmpty()) {
-                        Toast.makeText(this, "الرجاء إدخال اسم الحلقة", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    
-                    createHalaqa(name, description);
-                })
-                .setNegativeButton("إلغاء", null)
-                .show();
+        try {
+            View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_halaqa, null);
+            
+            EditText etName = dialogView.findViewById(R.id.et_name);
+            EditText etDescription = dialogView.findViewById(R.id.et_description);
+            
+            new AlertDialog.Builder(this)
+                    .setTitle("إضافة حلقة جديدة")
+                    .setView(dialogView)
+                    .setPositiveButton("إضافة", (dialog, which) -> {
+                        String name = etName.getText().toString().trim();
+                        String description = etDescription.getText().toString().trim();
+                        
+                        if (name.isEmpty()) {
+                            showError("الرجاء إدخال اسم الحلقة");
+                            return;
+                        }
+                        
+                        createHalaqa(name, description);
+                    })
+                    .setNegativeButton("إلغاء", null)
+                    .show();
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing dialog", e);
+            showError("حدث خطأ");
+        }
     }
     
     private void createHalaqa(String name, String description) {
-        Halaqa halaqa = new Halaqa();
-        halaqa.setName(name);
-        halaqa.setDescription(description);
-        
-        ApiClient.getApiService().createHalaqa(prefManager.getAuthToken(), halaqa)
-                .enqueue(new Callback<ApiResponse<Halaqa>>() {
-                    @Override
-                    public void onResponse(Call<ApiResponse<Halaqa>> call, Response<ApiResponse<Halaqa>> response) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            Toast.makeText(ManageHalaqatActivity.this, "تم إضافة الحلقة بنجاح", Toast.LENGTH_SHORT).show();
-                            loadHalaqat();
+        try {
+            Halaqa halaqa = new Halaqa();
+            halaqa.setName(name);
+            halaqa.setDescription(description);
+            
+            String token = prefManager.getAuthToken();
+            if (token == null) {
+                showError("خطأ في المصادقة");
+                return;
+            }
+            
+            ApiClient.getApiService().createHalaqa(token, halaqa)
+                    .enqueue(new Callback<ApiResponse<Halaqa>>() {
+                        @Override
+                        public void onResponse(Call<ApiResponse<Halaqa>> call, 
+                                             Response<ApiResponse<Halaqa>> response) {
+                            if (response.isSuccessful() && response.body() != null) {
+                                if (response.body().isSuccess()) {
+                                    showSuccess("تم إضافة الحلقة بنجاح");
+                                    loadHalaqat();
+                                } else {
+                                    showError(response.body().getMessage());
+                                }
+                            } else {
+                                showError("فشل إضافة الحلقة");
+                            }
                         }
-                    }
-                    
-                    @Override
-                    public void onFailure(Call<ApiResponse<Halaqa>> call, Throwable t) {
-                        Toast.makeText(ManageHalaqatActivity.this, "خطأ في إضافة الحلقة", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                        
+                        @Override
+                        public void onFailure(Call<ApiResponse<Halaqa>> call, Throwable t) {
+                            showError("خطأ في الاتصال: " + t.getMessage());
+                        }
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating halaqa", e);
+            showError("حدث خطأ");
+        }
     }
     
     @Override
     public void onEditHalaqa(Halaqa halaqa) {
-        // Implement edit functionality
+        if (halaqa == null) {
+            showError("خطأ: بيانات غير صالحة");
+            return;
+        }
+        showError("قريباً");
     }
     
     @Override
     public void onDeleteHalaqa(Halaqa halaqa) {
+        if (halaqa == null) {
+            showError("خطأ: بيانات غير صالحة");
+            return;
+        }
+        
         new AlertDialog.Builder(this)
                 .setTitle("تأكيد الحذف")
                 .setMessage("هل أنت متأكد من حذف " + halaqa.getName() + "؟")
@@ -165,31 +230,61 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
     }
     
     private void deleteHalaqa(int halaqaId) {
-        ApiClient.getApiService().deleteHalaqa(prefManager.getAuthToken(), halaqaId)
+        String token = prefManager.getAuthToken();
+        if (token == null) {
+            showError("خطأ في المصادقة");
+            return;
+        }
+        
+        ApiClient.getApiService().deleteHalaqa(token, halaqaId)
                 .enqueue(new Callback<ApiResponse<Object>>() {
                     @Override
-                    public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
+                    public void onResponse(Call<ApiResponse<Object>> call, 
+                                         Response<ApiResponse<Object>> response) {
                         if (response.isSuccessful() && response.body() != null) {
-                            Toast.makeText(ManageHalaqatActivity.this, "تم الحذف بنجاح", Toast.LENGTH_SHORT).show();
+                            showSuccess("تم الحذف بنجاح");
                             loadHalaqat();
+                        } else {
+                            showError("فشل الحذف");
                         }
                     }
                     
                     @Override
                     public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
-                        Toast.makeText(ManageHalaqatActivity.this, "خطأ في الحذف", Toast.LENGTH_SHORT).show();
+                        showError("خطأ في الاتصال");
                     }
                 });
     }
     
     private void showLoading(boolean show) {
-        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-        rvHalaqat.setVisibility(show ? View.GONE : View.VISIBLE);
+        if (progressBar != null) {
+            progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+        if (rvHalaqat != null) {
+            rvHalaqat.setVisibility(show ? View.GONE : View.VISIBLE);
+        }
     }
     
     private void showNoData(boolean show) {
-        tvNoData.setVisibility(show ? View.VISIBLE : View.GONE);
-        rvHalaqat.setVisibility(show ? View.GONE : View.VISIBLE);
+        if (tvNoData != null) {
+            tvNoData.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+        if (rvHalaqat != null) {
+            rvHalaqat.setVisibility(show ? View.GONE : View.VISIBLE);
+        }
+    }
+    
+    private void showError(String message) {
+        if (message != null && !message.isEmpty()) {
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+            Log.e(TAG, message);
+        }
+    }
+    
+    private void showSuccess(String message) {
+        if (message != null) {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        }
     }
     
     @Override
