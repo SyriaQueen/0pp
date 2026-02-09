@@ -18,11 +18,14 @@ public class Attendance {
     @SerializedName("fawj_name")
     private String fawjName;
     
+    @SerializedName("halaqa_name")
+    private String halaqaName;
+    
     @SerializedName("date")
     private String date;
     
     @SerializedName("status")
-    private String status; // present, absent, excused
+    private String status;
     
     @SerializedName("notes")
     private String notes;
@@ -35,6 +38,9 @@ public class Attendance {
     
     @SerializedName("created_at")
     private String createdAt;
+    
+    @SerializedName("updated_at")
+    private String updatedAt;
     
     // Constructors
     public Attendance() {}
@@ -55,6 +61,9 @@ public class Attendance {
     public String getFawjName() { return fawjName; }
     public void setFawjName(String fawjName) { this.fawjName = fawjName; }
     
+    public String getHalaqaName() { return halaqaName; }
+    public void setHalaqaName(String halaqaName) { this.halaqaName = halaqaName; }
+    
     public String getDate() { return date; }
     public void setDate(String date) { this.date = date; }
     
@@ -72,4 +81,7 @@ public class Attendance {
     
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    
+    public String getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
 }
