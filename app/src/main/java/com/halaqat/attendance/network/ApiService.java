@@ -52,6 +52,13 @@ public interface ApiService {
             @Header("Authorization") String token, 
             @Path("id") int userId
     );
+
+    // Users - استخدام Map للـ Request Body
+    @POST("users")
+    Call<ApiResponse<User>> createUserWithMap(
+            @Header("Authorization") String token, 
+            @Body Map<String, String> user
+    );
     
     // ═══════════════════════════════════════════════════════════════
     // Students APIs
