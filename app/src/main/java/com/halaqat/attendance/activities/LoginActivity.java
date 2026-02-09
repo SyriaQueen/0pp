@@ -2,12 +2,13 @@ package com.halaqat.attendance.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.android.material.textfield.TextInputEditText;
 import com.halaqat.attendance.AttendanceApp;
 import com.halaqat.attendance.R;
 import com.halaqat.attendance.models.ApiResponse;
@@ -23,7 +24,9 @@ import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
     
-    private EditText etUsername, etPassword;
+    private static final String TAG = "LoginActivity";
+    
+    private TextInputEditText etUsername, etPassword;
     private Button btnLogin;
     private ProgressBar progressBar;
     private PreferenceManager prefManager;
@@ -37,6 +40,8 @@ public class LoginActivity extends AppCompatActivity {
         
         initViews();
         setupListeners();
+        
+        Log.d(TAG, "LoginActivity created");
     }
     
     private void initViews() {
@@ -56,11 +61,13 @@ public class LoginActivity extends AppCompatActivity {
         
         if (username.isEmpty()) {
             etUsername.setError("الرجاء إدخال اسم المستخدم");
+            etUsername.requestFocus();
             return;
         }
         
         if (password.isEmpty()) {
             etPassword.setError("الرجاء إدخال كلمة المرور");
+            etPassword.requestFocus();
             return;
         }
         
@@ -70,44 +77,139 @@ public class LoginActivity extends AppCompatActivity {
     private void performLogin(String username, String password) {
         showLoading(true);
         
+        // إنشاء الـ Request Body
         Map<String, String> credentials = new HashMap<>();
         credentials.put("username", username);
         credentials.put("password", password);
         
-        ApiClient.getApiService().login(credentials).enqueue(new Callback<ApiResponse<LoginResponse>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<LoginResponse>> call, Response<ApiResponse<LoginResponse>> response) {
-                showLoading(false);
-                
-                if (response.isSuccessful() && response.body() != null) {
-                    ApiResponse<LoginResponse> apiResponse = response.body();
-                    if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                        LoginResponse loginResponse = apiResponse.getData();
+        Log.d(TAG, "Attempting login for user: " + username);
+        Log.d(TAG, "API Base URL: " + ApiClient.getBaseUrl());
+        
+        try {
+            ApiClient.getApiService().login(credentials)
+                    .enqueue(new Callback<ApiResponse<LoginResponse>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<LoginResponse>> call, 
+                                     Response<ApiResponse<LoginResponse>> response) {
+                    showLoading(false);
+                    
+                    Log.d(TAG, "Response code: " + response.code());
+                    
+                    if (response.isSuccessful()) {
+                        ApiResponse<LoginResponse> apiResponse = response.body();
                         
-                        prefManager.saveToken(loginResponse.getToken());
-                        prefManager.saveUser(loginResponse.getUser());
-                        prefManager.setLoggedIn(true);
-                        
-                        navigateToDashboard(loginResponse.getUser().getRole());
+                        if (apiResponse != null) {
+                            Log.d(TAG, "Response success: " + apiResponse.isSuccess());
+                            Log.d(TAG, "Response message: " + apiResponse.getMessage());
+                            
+                            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                                LoginResponse loginResponse = apiResponse.getData();
+                                
+                                // التحقق من البيانات
+                                if (loginResponse.getToken() != null && loginResponse.getUser() != null) {
+                                    Log.d(TAG, "Login successful!");
+                                    Log.d(TAG, "Token: " + loginResponse.getToken().substring(0, 20) + "...");
+                                    Log.d(TAG, "User role: " + loginResponse.getUser().getRole());
+                                    
+                                    // حفظ البيانات
+                                    prefManager.saveToken(loginResponse.getToken());
+                                    prefManager.saveUser(loginResponse.getUser());
+                                    prefManager.setLoggedIn(true);
+                                    
+                                    Toast.makeText(LoginActivity.this, 
+                                            "مرحباً " + loginResponse.getUser().getFullName(), 
+                                            Toast.LENGTH_SHORT).show();
+                                    
+                                    // الانتقال للصفحة المناسبة
+                                    navigateToDashboard(loginResponse.getUser().getRole());
+                                } else {
+                                    Log.e(TAG, "Token or User is null");
+                                    showError("خطأ في بيانات الاستجابة");
+                                }
+                            } else {
+                                String message = apiResponse.getMessage();
+                                Log.e(TAG, "Login failed: " + message);
+                                showError(message != null && !message.isEmpty() 
+                                        ? message 
+                                        : "فشل تسجيل الدخول");
+                            }
+                        } else {
+                            Log.e(TAG, "Response body is null");
+                            showError("خطأ في الاستجابة من الخادم");
+                        }
                     } else {
-                        Toast.makeText(LoginActivity.this, apiResponse.getMessage(), Toast.LENGTH_SHORT).show();
+                        Log.e(TAG, "Response not successful: " + response.code());
+                        
+                        try {
+                            String errorBody = response.errorBody() != null 
+                                    ? response.errorBody().string() 
+                                    : "Unknown error";
+                            Log.e(TAG, "Error body: " + errorBody);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error reading error body", e);
+                        }
+                        
+                        handleErrorResponse(response.code());
                     }
-                } else {
-                    Toast.makeText(LoginActivity.this, "فشل تسجيل الدخول", Toast.LENGTH_SHORT).show();
                 }
-            }
-            
-            @Override
-            public void onFailure(Call<ApiResponse<LoginResponse>> call, Throwable t) {
-                showLoading(false);
-                Toast.makeText(LoginActivity.this, "خطأ في الاتصال: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
+                
+                @Override
+                public void onFailure(Call<ApiResponse<LoginResponse>> call, Throwable t) {
+                    showLoading(false);
+                    Log.e(TAG, "Network error: " + t.getMessage(), t);
+                    
+                    String errorMessage = "خطأ في الاتصال بالخادم";
+                    
+                    if (t.getMessage() != null) {
+                        if (t.getMessage().contains("Unable to resolve host")) {
+                            errorMessage = "تعذر الاتصال بالخادم. تحقق من الاتصال بالإنترنت";
+                        } else if (t.getMessage().contains("timeout")) {
+                            errorMessage = "انتهت مهلة الاتصال. حاول مرة أخرى";
+                        } else if (t.getMessage().contains("Connection refused")) {
+                            errorMessage = "الخادم غير متاح. تأكد من تشغيل Backend";
+                        }
+                    }
+                    
+                    showError(errorMessage + "\n" + t.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            showLoading(false);
+            Log.e(TAG, "Exception during login", e);
+            showError("حدث خطأ: " + e.getMessage());
+        }
+    }
+    
+    private void handleErrorResponse(int code) {
+        String message;
+        switch (code) {
+            case 400:
+                message = "بيانات غير صحيحة";
+                break;
+            case 401:
+                message = "اسم المستخدم أو كلمة المرور غير صحيحة";
+                break;
+            case 404:
+                message = "الخادم غير متاح";
+                break;
+            case 500:
+                message = "خطأ في الخادم";
+                break;
+            default:
+                message = "خطأ غير متوقع (كود: " + code + ")";
+        }
+        showError(message);
     }
     
     private void navigateToDashboard(String role) {
         Intent intent;
-        switch (role) {
+        
+        if (role == null || role.isEmpty()) {
+            showError("نوع مستخدم غير صالح");
+            return;
+        }
+        
+        switch (role.toLowerCase()) {
             case "admin":
                 intent = new Intent(this, AdminDashboardActivity.class);
                 break;
@@ -118,15 +220,27 @@ public class LoginActivity extends AppCompatActivity {
                 intent = new Intent(this, ParentDashboardActivity.class);
                 break;
             default:
-                Toast.makeText(this, "نوع مستخدم غير صالح", Toast.LENGTH_SHORT).show();
+                showError("نوع مستخدم غير معروف: " + role);
                 return;
         }
+        
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
     
     private void showLoading(boolean show) {
-        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-        btnLogin.setEnabled(!show);
+        if (progressBar != null) {
+            progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+        if (btnLogin != null) {
+            btnLogin.setEnabled(!show);
+        }
+    }
+    
+    private void showError(String message) {
+        if (message != null && !message.isEmpty()) {
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        }
     }
 }
