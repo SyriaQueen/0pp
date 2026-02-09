@@ -1,6 +1,7 @@
 package com.halaqat.attendance.adapters;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +14,8 @@ import com.halaqat.attendance.models.User;
 import java.util.List;
 
 public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> {
+    
+    private static final String TAG = "UsersAdapter";
     
     private Context context;
     private List<User> userList;
@@ -38,27 +41,49 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
     
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        User user = userList.get(position);
-        
-        holder.tvName.setText(user.getFullName());
-        holder.tvUsername.setText(user.getUsername());
-        holder.tvRole.setText(getRoleInArabic(user.getRole()));
-        
-        holder.btnEdit.setOnClickListener(v -> listener.onEditUser(user));
-        holder.btnDelete.setOnClickListener(v -> listener.onDeleteUser(user));
+        try {
+            User user = userList.get(position);
+            
+            if (user != null) {
+                holder.tvName.setText(user.getFullName() != null ? user.getFullName() : "بدون اسم");
+                holder.tvUsername.setText(user.getUsername() != null ? user.getUsername() : "");
+                holder.tvRole.setText(getRoleInArabic(user.getRole()));
+                
+                holder.btnEdit.setOnClickListener(v -> {
+                    if (listener != null) {
+                        listener.onEditUser(user);
+                    }
+                });
+                
+                holder.btnDelete.setOnClickListener(v -> {
+                    if (listener != null) {
+                        listener.onDeleteUser(user);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error binding user at position " + position, e);
+        }
     }
     
     @Override
     public int getItemCount() {
-        return userList.size();
+        return userList != null ? userList.size() : 0;
     }
     
     public void updateData(List<User> newList) {
-        this.userList = newList;
-        notifyDataSetChanged();
+        if (newList != null) {
+            this.userList = newList;
+            notifyDataSetChanged();
+            Log.d(TAG, "Data updated with " + newList.size() + " items");
+        } else {
+            Log.w(TAG, "Attempted to update with null list");
+        }
     }
     
     private String getRoleInArabic(String role) {
+        if (role == null) return "";
+        
         switch (role.toLowerCase()) {
             case "admin": return "مدير";
             case "teacher": return "معلم";
