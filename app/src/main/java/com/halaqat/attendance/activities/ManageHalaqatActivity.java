@@ -19,7 +19,9 @@ import com.halaqat.attendance.models.Halaqa;
 import com.halaqat.attendance.network.ApiClient;
 import com.halaqat.attendance.utils.PreferenceManager;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -101,23 +103,29 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
                                              Response<ApiResponse<List<Halaqa>>> response) {
                             showLoading(false);
                             
+                            Log.d(TAG, "Response code: " + response.code());
+                            
                             if (response.isSuccessful() && response.body() != null) {
                                 ApiResponse<List<Halaqa>> apiResponse = response.body();
                                 
-                                if (apiResponse.isSuccess()) {
+                                Log.d(TAG, "Response success: " + apiResponse.isSuccess());
+                                
+                                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
                                     List<Halaqa> halaqat = apiResponse.getData();
                                     
-                                    if (halaqat != null && !halaqat.isEmpty()) {
-                                        Log.d(TAG, "Loaded " + halaqat.size() + " halaqat");
+                                    Log.d(TAG, "Halaqat loaded: " + halaqat.size());
+                                    
+                                    if (halaqat.isEmpty()) {
+                                        showNoData(true);
+                                    } else {
                                         showNoData(false);
                                         adapter.updateData(halaqat);
-                                    } else {
-                                        showNoData(true);
                                     }
                                 } else {
                                     showError(apiResponse.getMessage());
                                 }
                             } else {
+                                Log.e(TAG, "Response not successful: " + response.code());
                                 showError("خطأ في تحميل البيانات");
                             }
                         }
@@ -167,27 +175,33 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
     
     private void createHalaqa(String name, String description) {
         try {
-            Halaqa halaqa = new Halaqa();
-            halaqa.setName(name);
-            halaqa.setDescription(description);
-            
             String token = prefManager.getAuthToken();
             if (token == null) {
                 showError("خطأ في المصادقة");
                 return;
             }
             
-            ApiClient.getApiService().createHalaqa(token, halaqa)
+            // استخدام Map بدلاً من Object
+            Map<String, String> halaqaMap = new HashMap<>();
+            halaqaMap.put("name", name);
+            if (description != null && !description.isEmpty()) {
+                halaqaMap.put("description", description);
+            }
+            
+            Log.d(TAG, "Creating halaqa: " + name);
+            
+            ApiClient.getApiService().createHalaqaWithMap(token, halaqaMap)
                     .enqueue(new Callback<ApiResponse<Halaqa>>() {
                         @Override
                         public void onResponse(Call<ApiResponse<Halaqa>> call, 
                                              Response<ApiResponse<Halaqa>> response) {
                             if (response.isSuccessful() && response.body() != null) {
-                                if (response.body().isSuccess()) {
+                                ApiResponse<Halaqa> apiResponse = response.body();
+                                if (apiResponse.isSuccess()) {
                                     showSuccess("تم إضافة الحلقة بنجاح");
                                     loadHalaqat();
                                 } else {
-                                    showError(response.body().getMessage());
+                                    showError(apiResponse.getMessage());
                                 }
                             } else {
                                 showError("فشل إضافة الحلقة");
@@ -242,8 +256,13 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
                     public void onResponse(Call<ApiResponse<Object>> call, 
                                          Response<ApiResponse<Object>> response) {
                         if (response.isSuccessful() && response.body() != null) {
-                            showSuccess("تم الحذف بنجاح");
-                            loadHalaqat();
+                            ApiResponse<Object> apiResponse = response.body();
+                            if (apiResponse.isSuccess()) {
+                                showSuccess("تم الحذف بنجاح");
+                                loadHalaqat();
+                            } else {
+                                showError(apiResponse.getMessage());
+                            }
                         } else {
                             showError("فشل الحذف");
                         }
