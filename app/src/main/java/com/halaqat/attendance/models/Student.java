@@ -24,19 +24,19 @@ public class Student {
     @SerializedName("notes")
     private String notes;
     
+    @SerializedName("is_active")
+    private boolean isActive;
+    
     @SerializedName("created_at")
     private String createdAt;
+    
+    @SerializedName("updated_at")
+    private String updatedAt;
     
     private boolean isSelected = false;
     
     // Constructors
     public Student() {}
-    
-    public Student(int id, String fullName, int parentId) {
-        this.id = id;
-        this.fullName = fullName;
-        this.parentId = parentId;
-    }
     
     // Getters and Setters
     public int getId() { return id; }
@@ -60,8 +60,14 @@ public class Student {
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
     
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean active) { isActive = active; }
+    
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    
+    public String getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
     
     public boolean isSelected() { return isSelected; }
     public void setSelected(boolean selected) { isSelected = selected; }
