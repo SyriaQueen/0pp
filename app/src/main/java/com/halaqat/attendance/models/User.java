@@ -13,7 +13,7 @@ public class User {
     private String fullName;
     
     @SerializedName("role")
-    private String role; // admin, teacher, parent
+    private String role;
     
     @SerializedName("email")
     private String email;
@@ -21,18 +21,17 @@ public class User {
     @SerializedName("phone")
     private String phone;
     
+    @SerializedName("is_active")
+    private boolean isActive;
+    
     @SerializedName("created_at")
     private String createdAt;
     
+    @SerializedName("updated_at")
+    private String updatedAt;
+    
     // Constructors
     public User() {}
-    
-    public User(int id, String username, String fullName, String role) {
-        this.id = id;
-        this.username = username;
-        this.fullName = fullName;
-        this.role = role;
-    }
     
     // Getters and Setters
     public int getId() { return id; }
@@ -53,6 +52,12 @@ public class User {
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
     
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean active) { isActive = active; }
+    
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    
+    public String getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
 }
