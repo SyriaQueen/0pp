@@ -19,7 +19,9 @@ import com.halaqat.attendance.models.User;
 import com.halaqat.attendance.network.ApiClient;
 import com.halaqat.attendance.utils.PreferenceManager;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -91,7 +93,7 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
             return;
         }
         
-        Log.d(TAG, "Loading users with token: " + token.substring(0, Math.min(20, token.length())) + "...");
+        Log.d(TAG, "Loading users...");
         
         try {
             ApiClient.getApiService().getUsers(token)
@@ -103,35 +105,39 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
                             
                             Log.d(TAG, "Response code: " + response.code());
                             
-                            if (response.isSuccessful()) {
+                            if (response.isSuccessful() && response.body() != null) {
                                 ApiResponse<List<User>> apiResponse = response.body();
                                 
-                                if (apiResponse != null) {
-                                    Log.d(TAG, "Response success: " + apiResponse.isSuccess());
+                                Log.d(TAG, "Response success: " + apiResponse.isSuccess());
+                                Log.d(TAG, "Response message: " + apiResponse.getMessage());
+                                
+                                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                                    List<User> users = apiResponse.getData();
                                     
-                                    if (apiResponse.isSuccess()) {
-                                        List<User> users = apiResponse.getData();
-                                        
-                                        if (users != null && !users.isEmpty()) {
-                                            Log.d(TAG, "Loaded " + users.size() + " users");
-                                            showNoData(false);
-                                            adapter.updateData(users);
-                                        } else {
-                                            Log.d(TAG, "Users list is empty");
-                                            showNoData(true);
-                                        }
+                                    Log.d(TAG, "Users loaded: " + users.size());
+                                    
+                                    if (users.isEmpty()) {
+                                        showNoData(true);
                                     } else {
-                                        String message = apiResponse.getMessage() != null 
-                                            ? apiResponse.getMessage() 
-                                            : "فشل تحميل المستخدمين";
-                                        showError(message);
+                                        showNoData(false);
+                                        adapter.updateData(users);
                                     }
                                 } else {
-                                    Log.e(TAG, "Response body is null");
-                                    showError("خطأ في الاستجابة من الخادم");
+                                    String message = apiResponse.getMessage();
+                                    showError(message != null ? message : "فشل تحميل المستخدمين");
                                 }
                             } else {
                                 Log.e(TAG, "Response not successful: " + response.code());
+                                
+                                try {
+                                    if (response.errorBody() != null) {
+                                        String errorBody = response.errorBody().string();
+                                        Log.e(TAG, "Error body: " + errorBody);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error reading error body", e);
+                                }
+                                
                                 handleErrorResponse(response.code());
                             }
                         }
@@ -140,7 +146,19 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
                         public void onFailure(Call<ApiResponse<List<User>>> call, Throwable t) {
                             showLoading(false);
                             Log.e(TAG, "Network error: " + t.getMessage(), t);
-                            showError("خطأ في الاتصال بالخادم: " + t.getMessage());
+                            
+                            String errorMessage = "خطأ في الاتصال بالخادم";
+                            if (t.getMessage() != null) {
+                                if (t.getMessage().contains("Unable to resolve host")) {
+                                    errorMessage = "تعذر الاتصال بالخادم";
+                                } else if (t.getMessage().contains("timeout")) {
+                                    errorMessage = "انتهت مهلة الاتصال";
+                                } else if (t.getMessage().contains("Connection refused")) {
+                                    errorMessage = "الخادم غير متاح";
+                                }
+                            }
+                            
+                            showError(errorMessage);
                         }
                     });
         } catch (Exception e) {
@@ -182,10 +200,10 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
             EditText etPhone = dialogView.findViewById(R.id.et_phone);
             Spinner spinnerRole = dialogView.findViewById(R.id.spinner_role);
             
-            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+            ArrayAdapter<CharSequence> spinnerAdapter = ArrayAdapter.createFromResource(this,
                     R.array.user_roles, android.R.layout.simple_spinner_item);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spinnerRole.setAdapter(adapter);
+            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerRole.setAdapter(spinnerAdapter);
             
             new AlertDialog.Builder(this)
                     .setTitle("إضافة مستخدم جديد")
@@ -216,20 +234,29 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
     private void createUser(String username, String fullName, String password, 
                            String email, String phone, String role) {
         try {
-            User user = new User();
-            user.setUsername(username);
-            user.setFullName(fullName);
-            user.setEmail(email);
-            user.setPhone(phone);
-            user.setRole(role);
-            
             String token = prefManager.getAuthToken();
             if (token == null) {
                 showError("خطأ في المصادقة");
                 return;
             }
             
-            ApiClient.getApiService().createUser(token, user)
+            // إنشاء Request Body كـ Map
+            Map<String, String> userMap = new HashMap<>();
+            userMap.put("username", username);
+            userMap.put("password", password);
+            userMap.put("full_name", fullName);
+            userMap.put("role", role);
+            if (email != null && !email.isEmpty()) {
+                userMap.put("email", email);
+            }
+            if (phone != null && !phone.isEmpty()) {
+                userMap.put("phone", phone);
+            }
+            
+            Log.d(TAG, "Creating user: " + username + " with role: " + role);
+            
+            // استخدام createUserWithMap بدلاً من createUser
+            ApiClient.getApiService().createUserWithMap(token, userMap)
                     .enqueue(new Callback<ApiResponse<User>>() {
                         @Override
                         public void onResponse(Call<ApiResponse<User>> call, 
@@ -243,12 +270,14 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
                                     showError(apiResponse.getMessage());
                                 }
                             } else {
+                                Log.e(TAG, "Create user failed: " + response.code());
                                 showError("فشل إضافة المستخدم");
                             }
                         }
                         
                         @Override
                         public void onFailure(Call<ApiResponse<User>> call, Throwable t) {
+                            Log.e(TAG, "Create user error", t);
                             showError("خطأ في الاتصال: " + t.getMessage());
                         }
                     });
@@ -264,7 +293,6 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
             showError("خطأ: بيانات المستخدم غير صالحة");
             return;
         }
-        // TODO: Implement edit functionality
         showError("قريباً");
     }
     
@@ -296,8 +324,13 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
                     public void onResponse(Call<ApiResponse<Object>> call, 
                                          Response<ApiResponse<Object>> response) {
                         if (response.isSuccessful() && response.body() != null) {
-                            showSuccess("تم الحذف بنجاح");
-                            loadUsers();
+                            ApiResponse<Object> apiResponse = response.body();
+                            if (apiResponse.isSuccess()) {
+                                showSuccess("تم الحذف بنجاح");
+                                loadUsers();
+                            } else {
+                                showError(apiResponse.getMessage());
+                            }
                         } else {
                             showError("فشل الحذف");
                         }
