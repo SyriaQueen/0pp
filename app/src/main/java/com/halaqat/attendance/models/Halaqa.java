@@ -12,17 +12,17 @@ public class Halaqa {
     @SerializedName("description")
     private String description;
     
+    @SerializedName("is_active")
+    private boolean isActive;
+    
     @SerializedName("created_at")
     private String createdAt;
     
+    @SerializedName("updated_at")
+    private String updatedAt;
+    
     // Constructors
     public Halaqa() {}
-    
-    public Halaqa(int id, String name, String description) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-    }
     
     // Getters and Setters
     public int getId() { return id; }
@@ -34,6 +34,12 @@ public class Halaqa {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean active) { isActive = active; }
+    
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    
+    public String getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
 }
