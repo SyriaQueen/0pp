@@ -15,17 +15,17 @@ public class Fawj {
     @SerializedName("halaqa_name")
     private String halaqaName;
     
+    @SerializedName("is_active")
+    private boolean isActive;
+    
     @SerializedName("created_at")
     private String createdAt;
     
+    @SerializedName("updated_at")
+    private String updatedAt;
+    
     // Constructors
     public Fawj() {}
-    
-    public Fawj(int id, String name, int halaqaId) {
-        this.id = id;
-        this.name = name;
-        this.halaqaId = halaqaId;
-    }
     
     // Getters and Setters
     public int getId() { return id; }
@@ -40,6 +40,12 @@ public class Fawj {
     public String getHalaqaName() { return halaqaName; }
     public void setHalaqaName(String halaqaName) { this.halaqaName = halaqaName; }
     
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean active) { isActive = active; }
+    
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    
+    public String getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
 }
