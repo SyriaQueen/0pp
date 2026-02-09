@@ -123,6 +123,14 @@ public interface ApiService {
             @Header("Authorization") String token, 
             @Path("id") int halaqaId
     );
+
+ 
+    // Halaqat - استخدام Map للـ Request Body
+    @POST("halaqat")
+    Call<ApiResponse<Halaqa>> createHalaqaWithMap(
+            @Header("Authorization") String token, 
+            @Body Map<String, String> halaqa
+    );
     
     // ═══════════════════════════════════════════════════════════════
     // Fawj APIs
