@@ -93,7 +93,7 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
             return;
         }
         
-        Log.d(TAG, "Loading users...");
+        Log.d(TAG, "Loading users with token...");
         
         try {
             ApiClient.getApiService().getUsers(token)
@@ -150,15 +150,15 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
                             String errorMessage = "خطأ في الاتصال بالخادم";
                             if (t.getMessage() != null) {
                                 if (t.getMessage().contains("Unable to resolve host")) {
-                                    errorMessage = "تعذر الاتصال بالخادم";
+                                    errorMessage = "تعذر الاتصال بالخادم. تحقق من الإنترنت";
                                 } else if (t.getMessage().contains("timeout")) {
                                     errorMessage = "انتهت مهلة الاتصال";
                                 } else if (t.getMessage().contains("Connection refused")) {
-                                    errorMessage = "الخادم غير متاح";
+                                    errorMessage = "الخادم غير متاح. تأكد من تشغيل Backend";
                                 }
                             }
                             
-                            showError(errorMessage);
+                            showError(errorMessage + "\n" + t.getMessage());
                         }
                     });
         } catch (Exception e) {
@@ -221,6 +221,11 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
                             return;
                         }
                         
+                        if (password.length() < 6) {
+                            showError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+                            return;
+                        }
+                        
                         createUser(username, fullName, password, email, phone, role);
                     })
                     .setNegativeButton("إلغاء", null)
@@ -231,7 +236,7 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
         }
     }
     
-          private void createUser(String username, String fullName, String password, 
+    private void createUser(String username, String fullName, String password, 
                            String email, String phone, String role) {
         try {
             String token = prefManager.getAuthToken();
@@ -255,7 +260,6 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
             
             Log.d(TAG, "Creating user: " + username + " with role: " + role);
             
-            // استخدام createUser (وليس createUserWithMap)
             ApiClient.getApiService().createUser(token, userMap)
                     .enqueue(new Callback<ApiResponse<User>>() {
                         @Override
@@ -271,6 +275,16 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
                                 }
                             } else {
                                 Log.e(TAG, "Create user failed: " + response.code());
+                                
+                                try {
+                                    if (response.errorBody() != null) {
+                                        String errorBody = response.errorBody().string();
+                                        Log.e(TAG, "Error body: " + errorBody);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error reading error body", e);
+                                }
+                                
                                 showError("فشل إضافة المستخدم");
                             }
                         }
@@ -285,6 +299,15 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
             Log.e(TAG, "Error creating user", e);
             showError("حدث خطأ: " + e.getMessage());
         }
+    }
+    
+    @Override
+    public void onEditUser(User user) {
+        if (user == null) {
+            showError("خطأ: بيانات المستخدم غير صالحة");
+            return;
+        }
+        showError("قريباً");
     }
     
     @Override
