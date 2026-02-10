@@ -16,7 +16,7 @@ public class Fawj {
     private String halaqaName;
     
     @SerializedName("is_active")
-    private boolean isActive;
+    private Boolean isActive;
     
     @SerializedName("created_at")
     private String createdAt;
@@ -25,27 +25,64 @@ public class Fawj {
     private String updatedAt;
     
     // Constructors
-    public Fawj() {}
+    public Fawj() {
+        this.isActive = true;
+    }
     
     // Getters and Setters
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public int getId() { 
+        return id; 
+    }
     
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setId(int id) { 
+        this.id = id; 
+    }
     
-    public int getHalaqaId() { return halaqaId; }
-    public void setHalaqaId(int halaqaId) { this.halaqaId = halaqaId; }
+    public String getName() { 
+        return name != null ? name : ""; 
+    }
     
-    public String getHalaqaName() { return halaqaName; }
-    public void setHalaqaName(String halaqaName) { this.halaqaName = halaqaName; }
+    public void setName(String name) { 
+        this.name = name; 
+    }
     
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
+    public int getHalaqaId() { 
+        return halaqaId; 
+    }
     
-    public String getCreatedAt() { return createdAt; }
-    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public void setHalaqaId(int halaqaId) { 
+        this.halaqaId = halaqaId; 
+    }
     
-    public String getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
+    public String getHalaqaName() { 
+        return halaqaName != null ? halaqaName : ""; 
+    }
+    
+    public void setHalaqaName(String halaqaName) { 
+        this.halaqaName = halaqaName; 
+    }
+    
+    public boolean isActive() { 
+        return isActive != null ? isActive : true; 
+    }
+    
+    public void setActive(boolean active) { 
+        isActive = active; 
+    }
+    
+    public String getCreatedAt() { 
+        return createdAt != null ? createdAt : ""; 
+    }
+    
+    public void setCreatedAt(String createdAt) { 
+        this.createdAt = createdAt; 
+    }
+    
+    public String getUpdatedAt() { 
+        return updatedAt != null ? updatedAt : ""; 
+    }
+    
+    public void setUpdatedAt(String updatedAt) { 
+        this.updatedAt = updatedAt; 
+    }
 }
