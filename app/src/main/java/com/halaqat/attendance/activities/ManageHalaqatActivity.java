@@ -13,8 +13,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.halaqat.attendance.AttendanceApp;
 import com.halaqat.attendance.R;
-import com.halaqat.attendance.adapters.HalaqatAdapter;
+import com.halaqat.attendance.adapters.FawjAdapter;
 import com.halaqat.attendance.models.ApiResponse;
+import com.halaqat.attendance.models.Fawj;
 import com.halaqat.attendance.models.Halaqa;
 import com.halaqat.attendance.network.ApiClient;
 import com.halaqat.attendance.utils.PreferenceManager;
@@ -26,21 +27,22 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatAdapter.OnHalaqaActionListener {
+public class ManageFawjActivity extends AppCompatActivity implements FawjAdapter.OnFawjActionListener {
     
-    private static final String TAG = "ManageHalaqatActivity";
+    private static final String TAG = "ManageFawjActivity";
     
-    private RecyclerView rvHalaqat;
+    private RecyclerView rvFawj;
     private ProgressBar progressBar;
     private TextView tvNoData;
     private FloatingActionButton fabAdd;
     private PreferenceManager prefManager;
-    private HalaqatAdapter adapter;
+    private FawjAdapter adapter;
+    private List<Halaqa> halaqatList = new ArrayList<>();
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_manage_halaqat);
+        setContentView(R.layout.activity_manage_fawj);
         
         prefManager = AttendanceApp.getInstance().getPreferenceManager();
         
@@ -49,6 +51,7 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
         setupRecyclerView();
         setupListeners();
         loadHalaqat();
+        loadFawj();
     }
     
     private void setupToolbar() {
@@ -56,7 +59,7 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
             Toolbar toolbar = findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
             if (getSupportActionBar() != null) {
-                getSupportActionBar().setTitle("إدارة الحلقات");
+                getSupportActionBar().setTitle("إدارة الأفواج");
                 getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             }
         } catch (Exception e) {
@@ -65,25 +68,55 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
     }
     
     private void initViews() {
-        rvHalaqat = findViewById(R.id.rv_halaqat);
+        rvFawj = findViewById(R.id.rv_fawj);
         progressBar = findViewById(R.id.progress_bar);
         tvNoData = findViewById(R.id.tv_no_data);
         fabAdd = findViewById(R.id.fab_add);
     }
     
     private void setupRecyclerView() {
-        adapter = new HalaqatAdapter(this, new ArrayList<>(), this);
-        rvHalaqat.setLayoutManager(new LinearLayoutManager(this));
-        rvHalaqat.setAdapter(adapter);
+        adapter = new FawjAdapter(this, new ArrayList<>(), this);
+        rvFawj.setLayoutManager(new LinearLayoutManager(this));
+        rvFawj.setAdapter(adapter);
     }
     
     private void setupListeners() {
         if (fabAdd != null) {
-            fabAdd.setOnClickListener(v -> showAddHalaqaDialog());
+            fabAdd.setOnClickListener(v -> showAddFawjDialog());
         }
     }
     
     private void loadHalaqat() {
+        String token = prefManager.getAuthToken();
+        if (token == null || token.isEmpty()) {
+            return;
+        }
+        
+        Log.d(TAG, "Loading halaqat for spinner...");
+        
+        ApiClient.getApiService().getHalaqat(token)
+                .enqueue(new Callback<ApiResponse<List<Halaqa>>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<List<Halaqa>>> call, 
+                                         Response<ApiResponse<List<Halaqa>>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            ApiResponse<List<Halaqa>> apiResponse = response.body();
+                            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                                halaqatList = apiResponse.getData();
+                                Log.d(TAG, "Loaded " + halaqatList.size() + " halaqat for spinner");
+                            }
+                        }
+                    }
+                    
+                    @Override
+                    public void onFailure(Call<ApiResponse<List<Halaqa>>> call, Throwable t) {
+                        Log.e(TAG, "Failed to load halaqat", t);
+                        showError("خطأ في تحميل الحلقات");
+                    }
+                });
+    }
+    
+    private void loadFawj() {
         showLoading(true);
         
         String token = prefManager.getAuthToken();
@@ -93,38 +126,38 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
             return;
         }
         
-        Log.d(TAG, "Loading halaqat with token...");
+        Log.d(TAG, "Loading fawj with token...");
         
         try {
-            ApiClient.getApiService().getHalaqat(token)
-                    .enqueue(new Callback<ApiResponse<List<Halaqa>>>() {
+            ApiClient.getApiService().getAllFawj(token)
+                    .enqueue(new Callback<ApiResponse<List<Fawj>>>() {
                         @Override
-                        public void onResponse(Call<ApiResponse<List<Halaqa>>> call, 
-                                             Response<ApiResponse<List<Halaqa>>> response) {
+                        public void onResponse(Call<ApiResponse<List<Fawj>>> call, 
+                                             Response<ApiResponse<List<Fawj>>> response) {
                             showLoading(false);
                             
                             Log.d(TAG, "Response code: " + response.code());
                             
                             if (response.isSuccessful() && response.body() != null) {
-                                ApiResponse<List<Halaqa>> apiResponse = response.body();
+                                ApiResponse<List<Fawj>> apiResponse = response.body();
                                 
                                 Log.d(TAG, "Response success: " + apiResponse.isSuccess());
                                 Log.d(TAG, "Response message: " + apiResponse.getMessage());
                                 
                                 if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                                    List<Halaqa> halaqat = apiResponse.getData();
+                                    List<Fawj> fawjList = apiResponse.getData();
                                     
-                                    Log.d(TAG, "Halaqat loaded: " + halaqat.size());
+                                    Log.d(TAG, "Fawj loaded: " + fawjList.size());
                                     
-                                    if (halaqat.isEmpty()) {
+                                    if (fawjList.isEmpty()) {
                                         showNoData(true);
                                     } else {
                                         showNoData(false);
-                                        adapter.updateData(halaqat);
+                                        adapter.updateData(fawjList);
                                     }
                                 } else {
                                     String message = apiResponse.getMessage();
-                                    showError(message != null ? message : "فشل تحميل الحلقات");
+                                    showError(message != null ? message : "فشل تحميل الأفواج");
                                 }
                             } else {
                                 Log.e(TAG, "Response not successful: " + response.code());
@@ -143,7 +176,7 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
                         }
                         
                         @Override
-                        public void onFailure(Call<ApiResponse<List<Halaqa>>> call, Throwable t) {
+                        public void onFailure(Call<ApiResponse<List<Fawj>>> call, Throwable t) {
                             showLoading(false);
                             Log.e(TAG, "Network error: " + t.getMessage(), t);
                             
@@ -163,7 +196,7 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
                     });
         } catch (Exception e) {
             showLoading(false);
-            Log.e(TAG, "Exception loading halaqat", e);
+            Log.e(TAG, "Exception loading fawj", e);
             showError("حدث خطأ: " + e.getMessage());
         }
     }
@@ -189,36 +222,59 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
         showError(message);
     }
     
-    private void showAddHalaqaDialog() {
+    private void showAddFawjDialog() {
+        if (halaqatList.isEmpty()) {
+            showError("لا توجد حلقات متاحة. يرجى إضافة حلقة أولاً");
+            return;
+        }
+        
         try {
-            View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_halaqa, null);
+            View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_fawj, null);
             
             EditText etName = dialogView.findViewById(R.id.et_name);
-            EditText etDescription = dialogView.findViewById(R.id.et_description);
+            Spinner spinnerHalaqa = dialogView.findViewById(R.id.spinner_halaqa);
+            
+            // إعداد Spinner للحلقات
+            List<String> halaqaNames = new ArrayList<>();
+            halaqaNames.add("اختر الحلقة");
+            for (Halaqa halaqa : halaqatList) {
+                halaqaNames.add(halaqa.getName());
+            }
+            
+            ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, 
+                    android.R.layout.simple_spinner_item, halaqaNames);
+            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerHalaqa.setAdapter(spinnerAdapter);
             
             new AlertDialog.Builder(this)
-                    .setTitle("إضافة حلقة جديدة")
+                    .setTitle("إضافة فوج جديد")
                     .setView(dialogView)
                     .setPositiveButton("إضافة", (dialog, which) -> {
                         String name = etName.getText().toString().trim();
-                        String description = etDescription.getText().toString().trim();
+                        int position = spinnerHalaqa.getSelectedItemPosition();
                         
                         if (name.isEmpty()) {
-                            showError("الرجاء إدخال اسم الحلقة");
+                            showError("الرجاء إدخال اسم الفوج");
                             return;
                         }
                         
-                        createHalaqa(name, description);
+                        if (position == 0) {
+                            showError("الرجاء اختيار الحلقة");
+                            return;
+                        }
+                        
+                        int halaqaId = halaqatList.get(position - 1).getId();
+                        createFawj(name, halaqaId);
                     })
                     .setNegativeButton("إلغاء", null)
                     .show();
         } catch (Exception e) {
             Log.e(TAG, "Error showing dialog", e);
-            showError("حدث خطأ");
+            showError("حدث خطأ في فتح النافذة");
         }
     }
     
-    private void createHalaqa(String name, String description) {
+    private void createFawj(String name, int halaqaId) {
         try {
             String token = prefManager.getAuthToken();
             if (token == null) {
@@ -227,29 +283,27 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
             }
             
             // استخدام Map بدلاً من Object
-            Map<String, String> halaqaMap = new HashMap<>();
-            halaqaMap.put("name", name);
-            if (description != null && !description.isEmpty()) {
-                halaqaMap.put("description", description);
-            }
+            Map<String, Object> fawjMap = new HashMap<>();
+            fawjMap.put("name", name);
+            fawjMap.put("halaqa_id", halaqaId);
             
-            Log.d(TAG, "Creating halaqa: " + name);
+            Log.d(TAG, "Creating fawj: " + name + " for halaqa_id: " + halaqaId);
             
-            ApiClient.getApiService().createHalaqa(token, halaqaMap)
-                    .enqueue(new Callback<ApiResponse<Halaqa>>() {
+            ApiClient.getApiService().createFawj(token, fawjMap)
+                    .enqueue(new Callback<ApiResponse<Fawj>>() {
                         @Override
-                        public void onResponse(Call<ApiResponse<Halaqa>> call, 
-                                             Response<ApiResponse<Halaqa>> response) {
+                        public void onResponse(Call<ApiResponse<Fawj>> call, 
+                                             Response<ApiResponse<Fawj>> response) {
                             if (response.isSuccessful() && response.body() != null) {
-                                ApiResponse<Halaqa> apiResponse = response.body();
+                                ApiResponse<Fawj> apiResponse = response.body();
                                 if (apiResponse.isSuccess()) {
-                                    showSuccess("تم إضافة الحلقة بنجاح");
-                                    loadHalaqat();
+                                    showSuccess("تم إضافة الفوج بنجاح");
+                                    loadFawj();
                                 } else {
                                     showError(apiResponse.getMessage());
                                 }
                             } else {
-                                Log.e(TAG, "Create halaqa failed: " + response.code());
+                                Log.e(TAG, "Create fawj failed: " + response.code());
                                 
                                 try {
                                     if (response.errorBody() != null) {
@@ -260,25 +314,25 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
                                     Log.e(TAG, "Error reading error body", e);
                                 }
                                 
-                                showError("فشل إضافة الحلقة");
+                                showError("فشل إضافة الفوج");
                             }
                         }
                         
                         @Override
-                        public void onFailure(Call<ApiResponse<Halaqa>> call, Throwable t) {
-                            Log.e(TAG, "Create halaqa error", t);
+                        public void onFailure(Call<ApiResponse<Fawj>> call, Throwable t) {
+                            Log.e(TAG, "Create fawj error", t);
                             showError("خطأ في الاتصال: " + t.getMessage());
                         }
                     });
         } catch (Exception e) {
-            Log.e(TAG, "Error creating halaqa", e);
+            Log.e(TAG, "Error creating fawj", e);
             showError("حدث خطأ");
         }
     }
     
     @Override
-    public void onEditHalaqa(Halaqa halaqa) {
-        if (halaqa == null) {
+    public void onEditFawj(Fawj fawj) {
+        if (fawj == null) {
             showError("خطأ: بيانات غير صالحة");
             return;
         }
@@ -286,28 +340,28 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
     }
     
     @Override
-    public void onDeleteHalaqa(Halaqa halaqa) {
-        if (halaqa == null) {
+    public void onDeleteFawj(Fawj fawj) {
+        if (fawj == null) {
             showError("خطأ: بيانات غير صالحة");
             return;
         }
         
         new AlertDialog.Builder(this)
                 .setTitle("تأكيد الحذف")
-                .setMessage("هل أنت متأكد من حذف " + halaqa.getName() + "؟")
-                .setPositiveButton("حذف", (dialog, which) -> deleteHalaqa(halaqa.getId()))
+                .setMessage("هل أنت متأكد من حذف " + fawj.getName() + "؟")
+                .setPositiveButton("حذف", (dialog, which) -> deleteFawj(fawj.getId()))
                 .setNegativeButton("إلغاء", null)
                 .show();
     }
     
-    private void deleteHalaqa(int halaqaId) {
+    private void deleteFawj(int fawjId) {
         String token = prefManager.getAuthToken();
         if (token == null) {
             showError("خطأ في المصادقة");
             return;
         }
         
-        ApiClient.getApiService().deleteHalaqa(token, halaqaId)
+        ApiClient.getApiService().deleteFawj(token, fawjId)
                 .enqueue(new Callback<ApiResponse<Object>>() {
                     @Override
                     public void onResponse(Call<ApiResponse<Object>> call, 
@@ -316,7 +370,7 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
                             ApiResponse<Object> apiResponse = response.body();
                             if (apiResponse.isSuccess()) {
                                 showSuccess("تم الحذف بنجاح");
-                                loadHalaqat();
+                                loadFawj();
                             } else {
                                 showError(apiResponse.getMessage());
                             }
@@ -336,8 +390,8 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
         if (progressBar != null) {
             progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
         }
-        if (rvHalaqat != null) {
-            rvHalaqat.setVisibility(show ? View.GONE : View.VISIBLE);
+        if (rvFawj != null) {
+            rvFawj.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
     
@@ -345,8 +399,8 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
         if (tvNoData != null) {
             tvNoData.setVisibility(show ? View.VISIBLE : View.GONE);
         }
-        if (rvHalaqat != null) {
-            rvHalaqat.setVisibility(show ? View.GONE : View.VISIBLE);
+        if (rvFawj != null) {
+            rvFawj.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
     
