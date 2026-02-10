@@ -1,6 +1,7 @@
 package com.halaqat.attendance.adapters;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +14,8 @@ import com.halaqat.attendance.models.Fawj;
 import java.util.List;
 
 public class FawjAdapter extends RecyclerView.Adapter<FawjAdapter.ViewHolder> {
+    
+    private static final String TAG = "FawjAdapter";
     
     private Context context;
     private List<Fawj> fawjList;
@@ -38,33 +41,67 @@ public class FawjAdapter extends RecyclerView.Adapter<FawjAdapter.ViewHolder> {
     
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        Fawj fawj = fawjList.get(position);
-        
-        holder.tvName.setText(fawj.getName());
-        holder.tvHalaqa.setText(fawj.getHalaqaName());
-        
-        holder.btnEdit.setOnClickListener(v -> listener.onEditFawj(fawj));
-        holder.btnDelete.setOnClickListener(v -> listener.onDeleteFawj(fawj));
+        try {
+            if (fawjList == null || position >= fawjList.size()) {
+                Log.e(TAG, "Invalid position or null list");
+                return;
+            }
+            
+            Fawj fawj = fawjList.get(position);
+            
+            if (fawj == null) {
+                Log.e(TAG, "Fawj at position " + position + " is null");
+                return;
+            }
+            
+            // عرض البيانات مع فحص null
+            String name = fawj.getName();
+            String halaqaName = fawj.getHalaqaName();
+            
+            holder.tvName.setText(name != null && !name.isEmpty() ? name : "بدون اسم");
+            holder.tvHalaqaName.setText(halaqaName != null && !halaqaName.isEmpty() ? halaqaName : "");
+            
+            // الأزرار
+            holder.btnEdit.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onEditFawj(fawj);
+                }
+            });
+            
+            holder.btnDelete.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onDeleteFawj(fawj);
+                }
+            });
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error binding fawj at position " + position, e);
+        }
     }
     
     @Override
     public int getItemCount() {
-        return fawjList.size();
+        return fawjList != null ? fawjList.size() : 0;
     }
     
     public void updateData(List<Fawj> newList) {
-        this.fawjList = newList;
-        notifyDataSetChanged();
+        if (newList != null) {
+            this.fawjList = newList;
+            notifyDataSetChanged();
+            Log.d(TAG, "✅ Data updated with " + newList.size() + " items");
+        } else {
+            Log.w(TAG, "⚠️ Attempted to update with null list");
+        }
     }
     
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvName, tvHalaqa;
+        TextView tvName, tvHalaqaName;
         ImageButton btnEdit, btnDelete;
         
         ViewHolder(View itemView) {
             super(itemView);
             tvName = itemView.findViewById(R.id.tv_name);
-            tvHalaqa = itemView.findViewById(R.id.tv_halaqa);
+            tvHalaqaName = itemView.findViewById(R.id.tv_halaqa_name);
             btnEdit = itemView.findViewById(R.id.btn_edit);
             btnDelete = itemView.findViewById(R.id.btn_delete);
         }
