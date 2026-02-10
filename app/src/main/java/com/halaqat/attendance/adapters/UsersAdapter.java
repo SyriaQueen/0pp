@@ -42,25 +42,40 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         try {
+            if (userList == null || position >= userList.size()) {
+                Log.e(TAG, "Invalid position or null list");
+                return;
+            }
+            
             User user = userList.get(position);
             
-            if (user != null) {
-                holder.tvName.setText(user.getFullName() != null ? user.getFullName() : "بدون اسم");
-                holder.tvUsername.setText(user.getUsername() != null ? user.getUsername() : "");
-                holder.tvRole.setText(getRoleInArabic(user.getRole()));
-                
-                holder.btnEdit.setOnClickListener(v -> {
-                    if (listener != null) {
-                        listener.onEditUser(user);
-                    }
-                });
-                
-                holder.btnDelete.setOnClickListener(v -> {
-                    if (listener != null) {
-                        listener.onDeleteUser(user);
-                    }
-                });
+            if (user == null) {
+                Log.e(TAG, "User at position " + position + " is null");
+                return;
             }
+            
+            // عرض البيانات مع فحص null
+            String fullName = user.getFullName();
+            String username = user.getUsername();
+            String role = user.getRole();
+            
+            holder.tvName.setText(fullName != null && !fullName.isEmpty() ? fullName : "بدون اسم");
+            holder.tvUsername.setText(username != null && !username.isEmpty() ? username : "");
+            holder.tvRole.setText(getRoleInArabic(role));
+            
+            // الأزرار
+            holder.btnEdit.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onEditUser(user);
+                }
+            });
+            
+            holder.btnDelete.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onDeleteUser(user);
+                }
+            });
+            
         } catch (Exception e) {
             Log.e(TAG, "Error binding user at position " + position, e);
         }
@@ -75,16 +90,16 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
         if (newList != null) {
             this.userList = newList;
             notifyDataSetChanged();
-            Log.d(TAG, "Data updated with " + newList.size() + " items");
+            Log.d(TAG, "✅ Data updated with " + newList.size() + " items");
         } else {
-            Log.w(TAG, "Attempted to update with null list");
+            Log.w(TAG, "⚠️ Attempted to update with null list");
         }
     }
     
     private String getRoleInArabic(String role) {
-        if (role == null) return "";
+        if (role == null || role.isEmpty()) return "";
         
-        switch (role.toLowerCase()) {
+        switch (role.toLowerCase().trim()) {
             case "admin": return "مدير";
             case "teacher": return "معلم";
             case "parent": return "ولي أمر";
