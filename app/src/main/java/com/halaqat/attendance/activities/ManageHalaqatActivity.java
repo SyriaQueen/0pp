@@ -190,7 +190,8 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
             
             Log.d(TAG, "Creating halaqa: " + name);
             
-            ApiClient.getApiService().createHalaqaWithMap(token, halaqaMap)
+            // استخدام createHalaqa (وليس createHalaqaWithMap)
+            ApiClient.getApiService().createHalaqa(token, halaqaMap)
                     .enqueue(new Callback<ApiResponse<Halaqa>>() {
                         @Override
                         public void onResponse(Call<ApiResponse<Halaqa>> call, 
@@ -210,6 +211,7 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
                         
                         @Override
                         public void onFailure(Call<ApiResponse<Halaqa>> call, Throwable t) {
+                            Log.e(TAG, "Create halaqa error", t);
                             showError("خطأ في الاتصال: " + t.getMessage());
                         }
                     });
