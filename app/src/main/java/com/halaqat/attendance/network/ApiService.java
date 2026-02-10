@@ -8,10 +8,7 @@ import retrofit2.http.*;
 
 public interface ApiService {
     
-    // ═══════════════════════════════════════════════════════════════
-    // Authentication APIs
-    // ═══════════════════════════════════════════════════════════════
-    
+    // Authentication
     @POST("auth/login")
     Call<ApiResponse<LoginResponse>> login(@Body Map<String, String> credentials);
     
@@ -21,10 +18,7 @@ public interface ApiService {
             @Body Map<String, String> passwords
     );
     
-    // ═══════════════════════════════════════════════════════════════
-    // Users APIs
-    // ═══════════════════════════════════════════════════════════════
-    
+    // Users
     @GET("users")
     Call<ApiResponse<List<User>>> getUsers(@Header("Authorization") String token);
     
@@ -53,48 +47,7 @@ public interface ApiService {
             @Path("id") int userId
     );
     
-    // ═══════════════════════════════════════════════════════════════
-    // Students APIs
-    // ═══════════════════════════════════════════════════════════════
-    
-    @GET("students")
-    Call<ApiResponse<List<Student>>> getStudents(@Header("Authorization") String token);
-    
-    @GET("students/parent/{parentId}")
-    Call<ApiResponse<List<Student>>> getStudentsByParent(
-            @Header("Authorization") String token, 
-            @Path("parentId") int parentId
-    );
-    
-    @GET("students/fawj/{fawjId}")
-    Call<ApiResponse<List<Student>>> getStudentsByFawj(
-            @Header("Authorization") String token, 
-            @Path("fawjId") int fawjId
-    );
-    
-    @POST("students")
-    Call<ApiResponse<Student>> createStudent(
-            @Header("Authorization") String token, 
-            @Body Map<String, Object> student
-    );
-    
-    @PUT("students/{id}")
-    Call<ApiResponse<Student>> updateStudent(
-            @Header("Authorization") String token, 
-            @Path("id") int studentId, 
-            @Body Map<String, Object> student
-    );
-    
-    @DELETE("students/{id}")
-    Call<ApiResponse<Object>> deleteStudent(
-            @Header("Authorization") String token, 
-            @Path("id") int studentId
-    );
-    
-    // ═══════════════════════════════════════════════════════════════
-    // Halaqat APIs
-    // ═══════════════════════════════════════════════════════════════
-    
+    // Halaqat
     @GET("halaqat")
     Call<ApiResponse<List<Halaqa>>> getHalaqat(@Header("Authorization") String token);
     
@@ -117,10 +70,7 @@ public interface ApiService {
             @Path("id") int halaqaId
     );
     
-    // ═══════════════════════════════════════════════════════════════
-    // Fawj APIs
-    // ═══════════════════════════════════════════════════════════════
-    
+    // Fawj
     @GET("fawj")
     Call<ApiResponse<List<Fawj>>> getAllFawj(@Header("Authorization") String token);
     
@@ -155,57 +105,27 @@ public interface ApiService {
             @Path("id") int fawjId
     );
     
-    @POST("fawj/{fawjId}/assign-teacher/{teacherId}")
-    Call<ApiResponse<Object>> assignTeacherToFawj(
+    // Students
+    @GET("students")
+    Call<ApiResponse<List<Student>>> getStudents(@Header("Authorization") String token);
+    
+    @GET("students/parent/{parentId}")
+    Call<ApiResponse<List<Student>>> getStudentsByParent(
             @Header("Authorization") String token, 
-            @Path("fawjId") int fawjId, 
-            @Path("teacherId") int teacherId
+            @Path("parentId") int parentId
     );
     
-    @DELETE("fawj/{fawjId}/unassign-teacher/{teacherId}")
-    Call<ApiResponse<Object>> unassignTeacherFromFawj(
+    @GET("students/fawj/{fawjId}")
+    Call<ApiResponse<List<Student>>> getStudentsByFawj(
             @Header("Authorization") String token, 
-            @Path("fawjId") int fawjId, 
-            @Path("teacherId") int teacherId
+            @Path("fawjId") int fawjId
     );
     
-    @POST("fawj/{fawjId}/assign-student/{studentId}")
-    Call<ApiResponse<Object>> assignStudentToFawj(
-            @Header("Authorization") String token, 
-            @Path("fawjId") int fawjId, 
-            @Path("studentId") int studentId
-    );
-    
-    @DELETE("fawj/{fawjId}/unassign-student/{studentId}")
-    Call<ApiResponse<Object>> unassignStudentFromFawj(
-            @Header("Authorization") String token, 
-            @Path("fawjId") int fawjId, 
-            @Path("studentId") int studentId
-    );
-    
-    // ═══════════════════════════════════════════════════════════════
-    // Attendance APIs
-    // ═══════════════════════════════════════════════════════════════
-    
+    // Attendance
     @POST("attendance/mark")
     Call<ApiResponse<Object>> markAttendance(
             @Header("Authorization") String token, 
             @Body List<Map<String, Object>> attendanceList
-    );
-    
-    @GET("attendance/fawj/{fawjId}/date/{date}")
-    Call<ApiResponse<List<Attendance>>> getAttendanceByFawjAndDate(
-            @Header("Authorization") String token, 
-            @Path("fawjId") int fawjId, 
-            @Path("date") String date
-    );
-    
-    @GET("attendance/student/{studentId}")
-    Call<ApiResponse<List<Attendance>>> getAttendanceByStudent(
-            @Header("Authorization") String token, 
-            @Path("studentId") int studentId, 
-            @Query("startDate") String startDate, 
-            @Query("endDate") String endDate
     );
     
     @GET("attendance/report")
