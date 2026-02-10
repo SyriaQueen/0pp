@@ -2,6 +2,7 @@ package com.halaqat.attendance.activities;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.*;
@@ -19,12 +20,16 @@ import com.halaqat.attendance.models.Halaqa;
 import com.halaqat.attendance.network.ApiClient;
 import com.halaqat.attendance.utils.PreferenceManager;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class ManageFawjActivity extends AppCompatActivity implements FawjAdapter.OnFawjActionListener {
+    
+    private static final String TAG = "ManageFawjActivity";
     
     private RecyclerView rvFawj;
     private ProgressBar progressBar;
@@ -50,11 +55,15 @@ public class ManageFawjActivity extends AppCompatActivity implements FawjAdapter
     }
     
     private void setupToolbar() {
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("إدارة الأفواج");
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        try {
+            Toolbar toolbar = findViewById(R.id.toolbar);
+            setSupportActionBar(toolbar);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle("إدارة الأفواج");
+                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting up toolbar", e);
         }
     }
     
@@ -72,25 +81,37 @@ public class ManageFawjActivity extends AppCompatActivity implements FawjAdapter
     }
     
     private void setupListeners() {
-        fabAdd.setOnClickListener(v -> showAddFawjDialog());
+        if (fabAdd != null) {
+            fabAdd.setOnClickListener(v -> showAddFawjDialog());
+        }
     }
     
     private void loadHalaqat() {
-        ApiClient.getApiService().getHalaqat(prefManager.getAuthToken())
+        String token = prefManager.getAuthToken();
+        if (token == null || token.isEmpty()) {
+            return;
+        }
+        
+        Log.d(TAG, "Loading halaqat for spinner...");
+        
+        ApiClient.getApiService().getHalaqat(token)
                 .enqueue(new Callback<ApiResponse<List<Halaqa>>>() {
                     @Override
-                    public void onResponse(Call<ApiResponse<List<Halaqa>>> call, Response<ApiResponse<List<Halaqa>>> response) {
+                    public void onResponse(Call<ApiResponse<List<Halaqa>>> call, 
+                                         Response<ApiResponse<List<Halaqa>>> response) {
                         if (response.isSuccessful() && response.body() != null) {
                             ApiResponse<List<Halaqa>> apiResponse = response.body();
                             if (apiResponse.isSuccess() && apiResponse.getData() != null) {
                                 halaqatList = apiResponse.getData();
+                                Log.d(TAG, "Loaded " + halaqatList.size() + " halaqat for spinner");
                             }
                         }
                     }
                     
                     @Override
                     public void onFailure(Call<ApiResponse<List<Halaqa>>> call, Throwable t) {
-                        Toast.makeText(ManageFawjActivity.this, "خطأ في تحميل الحلقات", Toast.LENGTH_SHORT).show();
+                        Log.e(TAG, "Failed to load halaqat", t);
+                        showError("خطأ في تحميل الحلقات");
                     }
                 });
     }
@@ -98,104 +119,233 @@ public class ManageFawjActivity extends AppCompatActivity implements FawjAdapter
     private void loadFawj() {
         showLoading(true);
         
-        ApiClient.getApiService().getAllFawj(prefManager.getAuthToken())
-                .enqueue(new Callback<ApiResponse<List<Fawj>>>() {
-                    @Override
-                    public void onResponse(Call<ApiResponse<List<Fawj>>> call, Response<ApiResponse<List<Fawj>>> response) {
-                        showLoading(false);
-                        
-                        if (response.isSuccessful() && response.body() != null) {
-                            ApiResponse<List<Fawj>> apiResponse = response.body();
-                            if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                                List<Fawj> fawjList = apiResponse.getData();
-                                if (fawjList.isEmpty()) {
-                                    showNoData(true);
+        String token = prefManager.getAuthToken();
+        if (token == null || token.isEmpty()) {
+            showLoading(false);
+            showError("خطأ في المصادقة");
+            return;
+        }
+        
+        Log.d(TAG, "Loading fawj with token...");
+        
+        try {
+            ApiClient.getApiService().getAllFawj(token)
+                    .enqueue(new Callback<ApiResponse<List<Fawj>>>() {
+                        @Override
+                        public void onResponse(Call<ApiResponse<List<Fawj>>> call, 
+                                             Response<ApiResponse<List<Fawj>>> response) {
+                            showLoading(false);
+                            
+                            Log.d(TAG, "Response code: " + response.code());
+                            
+                            if (response.isSuccessful() && response.body() != null) {
+                                ApiResponse<List<Fawj>> apiResponse = response.body();
+                                
+                                Log.d(TAG, "Response success: " + apiResponse.isSuccess());
+                                Log.d(TAG, "Response message: " + apiResponse.getMessage());
+                                
+                                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                                    List<Fawj> fawjList = apiResponse.getData();
+                                    
+                                    Log.d(TAG, "Fawj loaded: " + fawjList.size());
+                                    
+                                    if (fawjList.isEmpty()) {
+                                        showNoData(true);
+                                    } else {
+                                        showNoData(false);
+                                        adapter.updateData(fawjList);
+                                    }
                                 } else {
-                                    showNoData(false);
-                                    adapter.updateData(fawjList);
+                                    String message = apiResponse.getMessage();
+                                    showError(message != null ? message : "فشل تحميل الأفواج");
                                 }
+                            } else {
+                                Log.e(TAG, "Response not successful: " + response.code());
+                                
+                                try {
+                                    if (response.errorBody() != null) {
+                                        String errorBody = response.errorBody().string();
+                                        Log.e(TAG, "Error body: " + errorBody);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error reading error body", e);
+                                }
+                                
+                                handleErrorResponse(response.code());
                             }
                         }
-                    }
-                    
-                    @Override
-                    public void onFailure(Call<ApiResponse<List<Fawj>>> call, Throwable t) {
-                        showLoading(false);
-                        Toast.makeText(ManageFawjActivity.this, "خطأ في تحميل البيانات", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                        
+                        @Override
+                        public void onFailure(Call<ApiResponse<List<Fawj>>> call, Throwable t) {
+                            showLoading(false);
+                            Log.e(TAG, "Network error: " + t.getMessage(), t);
+                            
+                            String errorMessage = "خطأ في الاتصال بالخادم";
+                            if (t.getMessage() != null) {
+                                if (t.getMessage().contains("Unable to resolve host")) {
+                                    errorMessage = "تعذر الاتصال بالخادم";
+                                } else if (t.getMessage().contains("timeout")) {
+                                    errorMessage = "انتهت مهلة الاتصال";
+                                } else if (t.getMessage().contains("Connection refused")) {
+                                    errorMessage = "الخادم غير متاح. تأكد من تشغيل Backend";
+                                }
+                            }
+                            
+                            showError(errorMessage + "\n" + t.getMessage());
+                        }
+                    });
+        } catch (Exception e) {
+            showLoading(false);
+            Log.e(TAG, "Exception loading fawj", e);
+            showError("حدث خطأ: " + e.getMessage());
+        }
+    }
+    
+    private void handleErrorResponse(int code) {
+        String message;
+        switch (code) {
+            case 401:
+                message = "غير مصرح. الرجاء تسجيل الدخول مرة أخرى";
+                break;
+            case 403:
+                message = "ليس لديك صلاحية للوصول";
+                break;
+            case 404:
+                message = "الخدمة غير متوفرة";
+                break;
+            case 500:
+                message = "خطأ في الخادم";
+                break;
+            default:
+                message = "خطأ غير متوقع (كود: " + code + ")";
+        }
+        showError(message);
     }
     
     private void showAddFawjDialog() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_fawj, null);
-        
-        EditText etName = dialogView.findViewById(R.id.et_name);
-        Spinner spinnerHalaqa = dialogView.findViewById(R.id.spinner_halaqa);
-        
-        List<String> halaqaNames = new ArrayList<>();
-        halaqaNames.add("اختر الحلقة");
-        for (Halaqa halaqa : halaqatList) {
-            halaqaNames.add(halaqa.getName());
+        if (halaqatList.isEmpty()) {
+            showError("لا توجد حلقات متاحة. يرجى إضافة حلقة أولاً");
+            return;
         }
         
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, 
-                android.R.layout.simple_spinner_item, halaqaNames);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerHalaqa.setAdapter(adapter);
-        
-        new AlertDialog.Builder(this)
-                .setTitle("إضافة فوج جديد")
-                .setView(dialogView)
-                .setPositiveButton("إضافة", (dialog, which) -> {
-                    String name = etName.getText().toString().trim();
-                    int position = spinnerHalaqa.getSelectedItemPosition();
-                    
-                    if (name.isEmpty()) {
-                        Toast.makeText(this, "الرجاء إدخال اسم الفوج", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    
-                    if (position == 0) {
-                        Toast.makeText(this, "الرجاء اختيار الحلقة", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    
-                    int halaqaId = halaqatList.get(position - 1).getId();
-                    createFawj(name, halaqaId);
-                })
-                .setNegativeButton("إلغاء", null)
-                .show();
+        try {
+            View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_fawj, null);
+            
+            EditText etName = dialogView.findViewById(R.id.et_name);
+            Spinner spinnerHalaqa = dialogView.findViewById(R.id.spinner_halaqa);
+            
+            // إعداد Spinner للحلقات
+            List<String> halaqaNames = new ArrayList<>();
+            halaqaNames.add("اختر الحلقة");
+            for (Halaqa halaqa : halaqatList) {
+                halaqaNames.add(halaqa.getName());
+            }
+            
+            ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, 
+                    android.R.layout.simple_spinner_item, halaqaNames);
+            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerHalaqa.setAdapter(spinnerAdapter);
+            
+            new AlertDialog.Builder(this)
+                    .setTitle("إضافة فوج جديد")
+                    .setView(dialogView)
+                    .setPositiveButton("إضافة", (dialog, which) -> {
+                        String name = etName.getText().toString().trim();
+                        int position = spinnerHalaqa.getSelectedItemPosition();
+                        
+                        if (name.isEmpty()) {
+                            showError("الرجاء إدخال اسم الفوج");
+                            return;
+                        }
+                        
+                        if (position == 0) {
+                            showError("الرجاء اختيار الحلقة");
+                            return;
+                        }
+                        
+                        int halaqaId = halaqatList.get(position - 1).getId();
+                        createFawj(name, halaqaId);
+                    })
+                    .setNegativeButton("إلغاء", null)
+                    .show();
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing dialog", e);
+            showError("حدث خطأ في فتح النافذة");
+        }
     }
     
     private void createFawj(String name, int halaqaId) {
-        Fawj fawj = new Fawj();
-        fawj.setName(name);
-        fawj.setHalaqaId(halaqaId);
-        
-        ApiClient.getApiService().createFawj(prefManager.getAuthToken(), fawj)
-                .enqueue(new Callback<ApiResponse<Fawj>>() {
-                    @Override
-                    public void onResponse(Call<ApiResponse<Fawj>> call, Response<ApiResponse<Fawj>> response) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            Toast.makeText(ManageFawjActivity.this, "تم إضافة الفوج بنجاح", Toast.LENGTH_SHORT).show();
-                            loadFawj();
+        try {
+            String token = prefManager.getAuthToken();
+            if (token == null) {
+                showError("خطأ في المصادقة");
+                return;
+            }
+            
+            // استخدام Map بدلاً من Object
+            Map<String, Object> fawjMap = new HashMap<>();
+            fawjMap.put("name", name);
+            fawjMap.put("halaqa_id", halaqaId);
+            
+            Log.d(TAG, "Creating fawj: " + name + " for halaqa_id: " + halaqaId);
+            
+            ApiClient.getApiService().createFawj(token, fawjMap)
+                    .enqueue(new Callback<ApiResponse<Fawj>>() {
+                        @Override
+                        public void onResponse(Call<ApiResponse<Fawj>> call, 
+                                             Response<ApiResponse<Fawj>> response) {
+                            if (response.isSuccessful() && response.body() != null) {
+                                ApiResponse<Fawj> apiResponse = response.body();
+                                if (apiResponse.isSuccess()) {
+                                    showSuccess("تم إضافة الفوج بنجاح");
+                                    loadFawj();
+                                } else {
+                                    showError(apiResponse.getMessage());
+                                }
+                            } else {
+                                Log.e(TAG, "Create fawj failed: " + response.code());
+                                
+                                try {
+                                    if (response.errorBody() != null) {
+                                        String errorBody = response.errorBody().string();
+                                        Log.e(TAG, "Error body: " + errorBody);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error reading error body", e);
+                                }
+                                
+                                showError("فشل إضافة الفوج");
+                            }
                         }
-                    }
-                    
-                    @Override
-                    public void onFailure(Call<ApiResponse<Fawj>> call, Throwable t) {
-                        Toast.makeText(ManageFawjActivity.this, "خطأ في إضافة الفوج", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                        
+                        @Override
+                        public void onFailure(Call<ApiResponse<Fawj>> call, Throwable t) {
+                            Log.e(TAG, "Create fawj error", t);
+                            showError("خطأ في الاتصال: " + t.getMessage());
+                        }
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating fawj", e);
+            showError("حدث خطأ");
+        }
     }
     
     @Override
     public void onEditFawj(Fawj fawj) {
-        // Implement edit functionality
+        if (fawj == null) {
+            showError("خطأ: بيانات غير صالحة");
+            return;
+        }
+        showError("قريباً");
     }
     
     @Override
     public void onDeleteFawj(Fawj fawj) {
+        if (fawj == null) {
+            showError("خطأ: بيانات غير صالحة");
+            return;
+        }
+        
         new AlertDialog.Builder(this)
                 .setTitle("تأكيد الحذف")
                 .setMessage("هل أنت متأكد من حذف " + fawj.getName() + "؟")
@@ -205,31 +355,66 @@ public class ManageFawjActivity extends AppCompatActivity implements FawjAdapter
     }
     
     private void deleteFawj(int fawjId) {
-        ApiClient.getApiService().deleteFawj(prefManager.getAuthToken(), fawjId)
+        String token = prefManager.getAuthToken();
+        if (token == null) {
+            showError("خطأ في المصادقة");
+            return;
+        }
+        
+        ApiClient.getApiService().deleteFawj(token, fawjId)
                 .enqueue(new Callback<ApiResponse<Object>>() {
                     @Override
-                    public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
+                    public void onResponse(Call<ApiResponse<Object>> call, 
+                                         Response<ApiResponse<Object>> response) {
                         if (response.isSuccessful() && response.body() != null) {
-                            Toast.makeText(ManageFawjActivity.this, "تم الحذف بنجاح", Toast.LENGTH_SHORT).show();
-                            loadFawj();
+                            ApiResponse<Object> apiResponse = response.body();
+                            if (apiResponse.isSuccess()) {
+                                showSuccess("تم الحذف بنجاح");
+                                loadFawj();
+                            } else {
+                                showError(apiResponse.getMessage());
+                            }
+                        } else {
+                            showError("فشل الحذف");
                         }
                     }
                     
                     @Override
                     public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
-                        Toast.makeText(ManageFawjActivity.this, "خطأ في الحذف", Toast.LENGTH_SHORT).show();
+                        showError("خطأ في الاتصال");
                     }
                 });
     }
     
     private void showLoading(boolean show) {
-        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-        rvFawj.setVisibility(show ? View.GONE : View.VISIBLE);
+        if (progressBar != null) {
+            progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+        if (rvFawj != null) {
+            rvFawj.setVisibility(show ? View.GONE : View.VISIBLE);
+        }
     }
     
     private void showNoData(boolean show) {
-        tvNoData.setVisibility(show ? View.VISIBLE : View.GONE);
-        rvFawj.setVisibility(show ? View.GONE : View.VISIBLE);
+        if (tvNoData != null) {
+            tvNoData.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+        if (rvFawj != null) {
+            rvFawj.setVisibility(show ? View.GONE : View.VISIBLE);
+        }
+    }
+    
+    private void showError(String message) {
+        if (message != null && !message.isEmpty()) {
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+            Log.e(TAG, message);
+        }
+    }
+    
+    private void showSuccess(String message) {
+        if (message != null) {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        }
     }
     
     @Override
