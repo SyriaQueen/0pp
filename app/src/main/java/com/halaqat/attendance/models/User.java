@@ -1,63 +1,72 @@
-package com.halaqat.attendance.models;
+package com.halaqat.attendance.network;
 
-import com.google.gson.annotations.SerializedName;
+import android.content.Context;
+import android.util.Log;
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+import java.util.concurrent.TimeUnit;
 
-public class User {
-    @SerializedName("id")
-    private int id;
+public class ApiClient {
     
-    @SerializedName("username")
-    private String username;
+    private static final String TAG = "ApiClient";
     
-    @SerializedName("full_name")
-    private String fullName;
+    // ⚡ غير هذا السطر حسب حالتك:
+    private static final String BASE_URL = "http://10.0.2.2:3000/api/";
     
-    @SerializedName("role")
-    private String role;
+    private static Retrofit retrofit;
+    private static ApiService apiService;
     
-    @SerializedName("email")
-    private String email;
+    public static void init(Context context) {
+        try {
+            // إعداد Logging
+            HttpLoggingInterceptor logging = new HttpLoggingInterceptor(message -> {
+                Log.d(TAG, "OkHttp: " + message);
+            });
+            logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+            
+            // إعداد OkHttp Client
+            OkHttpClient client = new OkHttpClient.Builder()
+                    .addInterceptor(logging)
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
+                    .retryOnConnectionFailure(true)
+                    .build();
+            
+            // ✅ الحل الجذري: Gson مخصص يدعم snake_case والتواريخ
+            Gson gson = new GsonBuilder()
+                    .setLenient()
+                    .serializeNulls()
+                    .create();
+            
+            retrofit = new Retrofit.Builder()
+                    .baseUrl(BASE_URL)
+                    .client(client)
+                    .addConverterFactory(GsonConverterFactory.create(gson))
+                    .build();
+            
+            apiService = retrofit.create(ApiService.class);
+            
+            Log.d(TAG, "✅ ApiClient initialized successfully");
+            Log.d(TAG, "📡 BASE_URL: " + BASE_URL);
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error initializing ApiClient", e);
+        }
+    }
     
-    @SerializedName("phone")
-    private String phone;
+    public static ApiService getApiService() {
+        if (apiService == null) {
+            Log.e(TAG, "⚠️ ApiService is null! Call ApiClient.init() first");
+        }
+        return apiService;
+    }
     
-    @SerializedName("is_active")
-    private boolean isActive;
-    
-    @SerializedName("created_at")
-    private String createdAt;
-    
-    @SerializedName("updated_at")
-    private String updatedAt;
-    
-    // Constructors
-    public User() {}
-    
-    // Getters and Setters
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
-    
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-    
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
-    
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-    
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
-    
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
-    
-    public String getCreatedAt() { return createdAt; }
-    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
-    
-    public String getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
+    public static String getBaseUrl() {
+        return BASE_URL;
+    }
 }
