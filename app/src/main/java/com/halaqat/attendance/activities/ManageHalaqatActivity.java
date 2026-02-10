@@ -93,7 +93,7 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
             return;
         }
         
-        Log.d(TAG, "Loading halaqat...");
+        Log.d(TAG, "Loading halaqat with token...");
         
         try {
             ApiClient.getApiService().getHalaqat(token)
@@ -109,6 +109,7 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
                                 ApiResponse<List<Halaqa>> apiResponse = response.body();
                                 
                                 Log.d(TAG, "Response success: " + apiResponse.isSuccess());
+                                Log.d(TAG, "Response message: " + apiResponse.getMessage());
                                 
                                 if (apiResponse.isSuccess() && apiResponse.getData() != null) {
                                     List<Halaqa> halaqat = apiResponse.getData();
@@ -122,19 +123,42 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
                                         adapter.updateData(halaqat);
                                     }
                                 } else {
-                                    showError(apiResponse.getMessage());
+                                    String message = apiResponse.getMessage();
+                                    showError(message != null ? message : "فشل تحميل الحلقات");
                                 }
                             } else {
                                 Log.e(TAG, "Response not successful: " + response.code());
-                                showError("خطأ في تحميل البيانات");
+                                
+                                try {
+                                    if (response.errorBody() != null) {
+                                        String errorBody = response.errorBody().string();
+                                        Log.e(TAG, "Error body: " + errorBody);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error reading error body", e);
+                                }
+                                
+                                handleErrorResponse(response.code());
                             }
                         }
                         
                         @Override
                         public void onFailure(Call<ApiResponse<List<Halaqa>>> call, Throwable t) {
                             showLoading(false);
-                            Log.e(TAG, "Error loading halaqat", t);
-                            showError("خطأ في الاتصال: " + t.getMessage());
+                            Log.e(TAG, "Network error: " + t.getMessage(), t);
+                            
+                            String errorMessage = "خطأ في الاتصال بالخادم";
+                            if (t.getMessage() != null) {
+                                if (t.getMessage().contains("Unable to resolve host")) {
+                                    errorMessage = "تعذر الاتصال بالخادم";
+                                } else if (t.getMessage().contains("timeout")) {
+                                    errorMessage = "انتهت مهلة الاتصال";
+                                } else if (t.getMessage().contains("Connection refused")) {
+                                    errorMessage = "الخادم غير متاح. تأكد من تشغيل Backend";
+                                }
+                            }
+                            
+                            showError(errorMessage + "\n" + t.getMessage());
                         }
                     });
         } catch (Exception e) {
@@ -142,6 +166,27 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
             Log.e(TAG, "Exception loading halaqat", e);
             showError("حدث خطأ: " + e.getMessage());
         }
+    }
+    
+    private void handleErrorResponse(int code) {
+        String message;
+        switch (code) {
+            case 401:
+                message = "غير مصرح. الرجاء تسجيل الدخول مرة أخرى";
+                break;
+            case 403:
+                message = "ليس لديك صلاحية للوصول";
+                break;
+            case 404:
+                message = "الخدمة غير متوفرة";
+                break;
+            case 500:
+                message = "خطأ في الخادم";
+                break;
+            default:
+                message = "خطأ غير متوقع (كود: " + code + ")";
+        }
+        showError(message);
     }
     
     private void showAddHalaqaDialog() {
@@ -190,7 +235,6 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
             
             Log.d(TAG, "Creating halaqa: " + name);
             
-            // استخدام createHalaqa (وليس createHalaqaWithMap)
             ApiClient.getApiService().createHalaqa(token, halaqaMap)
                     .enqueue(new Callback<ApiResponse<Halaqa>>() {
                         @Override
@@ -205,6 +249,17 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
                                     showError(apiResponse.getMessage());
                                 }
                             } else {
+                                Log.e(TAG, "Create halaqa failed: " + response.code());
+                                
+                                try {
+                                    if (response.errorBody() != null) {
+                                        String errorBody = response.errorBody().string();
+                                        Log.e(TAG, "Error body: " + errorBody);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error reading error body", e);
+                                }
+                                
                                 showError("فشل إضافة الحلقة");
                             }
                         }
