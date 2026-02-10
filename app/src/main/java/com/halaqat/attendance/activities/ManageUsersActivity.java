@@ -231,7 +231,7 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
         }
     }
     
-    private void createUser(String username, String fullName, String password, 
+          private void createUser(String username, String fullName, String password, 
                            String email, String phone, String role) {
         try {
             String token = prefManager.getAuthToken();
@@ -255,8 +255,8 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
             
             Log.d(TAG, "Creating user: " + username + " with role: " + role);
             
-            // استخدام createUserWithMap بدلاً من createUser
-            ApiClient.getApiService().createUserWithMap(token, userMap)
+            // استخدام createUser (وليس createUserWithMap)
+            ApiClient.getApiService().createUser(token, userMap)
                     .enqueue(new Callback<ApiResponse<User>>() {
                         @Override
                         public void onResponse(Call<ApiResponse<User>> call, 
@@ -285,15 +285,6 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
             Log.e(TAG, "Error creating user", e);
             showError("حدث خطأ: " + e.getMessage());
         }
-    }
-    
-    @Override
-    public void onEditUser(User user) {
-        if (user == null) {
-            showError("خطأ: بيانات المستخدم غير صالحة");
-            return;
-        }
-        showError("قريباً");
     }
     
     @Override
