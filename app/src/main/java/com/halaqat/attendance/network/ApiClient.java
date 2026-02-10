@@ -2,6 +2,8 @@ package com.halaqat.attendance.network;
 
 import android.content.Context;
 import android.util.Log;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
@@ -12,9 +14,8 @@ public class ApiClient {
     
     private static final String TAG = "ApiClient";
     
-    // ⚡ غير هذا السطر حسب حالتك:
+    // ⚡ غير هذا السطر حسب حالتك
     private static final String BASE_URL = "http://fi11.bot-hosting.net:21316/api/";
-    // أو: "https://example.com/api/"
     
     private static Retrofit retrofit;
     private static ApiService apiService;
@@ -32,23 +33,27 @@ public class ApiClient {
                     .retryOnConnectionFailure(true)
                     .build();
             
+            Gson gson = new GsonBuilder()
+                    .setLenient()
+                    .create();
+            
             retrofit = new Retrofit.Builder()
                     .baseUrl(BASE_URL)
                     .client(client)
-                    .addConverterFactory(GsonConverterFactory.create())
+                    .addConverterFactory(GsonConverterFactory.create(gson))
                     .build();
             
             apiService = retrofit.create(ApiService.class);
             
-            Log.d(TAG, "ApiClient initialized successfully with BASE_URL: " + BASE_URL);
+            Log.d(TAG, "✅ ApiClient initialized: " + BASE_URL);
         } catch (Exception e) {
-            Log.e(TAG, "Error initializing ApiClient: " + e.getMessage(), e);
+            Log.e(TAG, "❌ Error initializing ApiClient", e);
         }
     }
     
     public static ApiService getApiService() {
         if (apiService == null) {
-            Log.e(TAG, "ApiService is null! Make sure to call ApiClient.init() first");
+            Log.e(TAG, "❌ ApiService is null!");
         }
         return apiService;
     }
