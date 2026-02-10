@@ -16,7 +16,7 @@ public class ApiClient {
     private static final String TAG = "ApiClient";
     
     // ⚡ غير هذا السطر حسب حالتك:
-    private static final String BASE_URL = "http://10.0.2.2:3000/api/";
+    private static final String BASE_URL = "http://fi11.bot-hosting.net:21316/api/";
     
     private static Retrofit retrofit;
     private static ApiService apiService;
