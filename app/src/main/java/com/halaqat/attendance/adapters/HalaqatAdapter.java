@@ -42,24 +42,38 @@ public class HalaqatAdapter extends RecyclerView.Adapter<HalaqatAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         try {
+            if (halaqatList == null || position >= halaqatList.size()) {
+                Log.e(TAG, "Invalid position or null list");
+                return;
+            }
+            
             Halaqa halaqa = halaqatList.get(position);
             
-            if (halaqa != null) {
-                holder.tvName.setText(halaqa.getName() != null ? halaqa.getName() : "بدون اسم");
-                holder.tvDescription.setText(halaqa.getDescription() != null ? halaqa.getDescription() : "");
-                
-                holder.btnEdit.setOnClickListener(v -> {
-                    if (listener != null) {
-                        listener.onEditHalaqa(halaqa);
-                    }
-                });
-                
-                holder.btnDelete.setOnClickListener(v -> {
-                    if (listener != null) {
-                        listener.onDeleteHalaqa(halaqa);
-                    }
-                });
+            if (halaqa == null) {
+                Log.e(TAG, "Halaqa at position " + position + " is null");
+                return;
             }
+            
+            // عرض البيانات مع فحص null
+            String name = halaqa.getName();
+            String description = halaqa.getDescription();
+            
+            holder.tvName.setText(name != null && !name.isEmpty() ? name : "بدون اسم");
+            holder.tvDescription.setText(description != null && !description.isEmpty() ? description : "");
+            
+            // الأزرار
+            holder.btnEdit.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onEditHalaqa(halaqa);
+                }
+            });
+            
+            holder.btnDelete.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onDeleteHalaqa(halaqa);
+                }
+            });
+            
         } catch (Exception e) {
             Log.e(TAG, "Error binding halaqa at position " + position, e);
         }
@@ -74,9 +88,9 @@ public class HalaqatAdapter extends RecyclerView.Adapter<HalaqatAdapter.ViewHold
         if (newList != null) {
             this.halaqatList = newList;
             notifyDataSetChanged();
-            Log.d(TAG, "Data updated with " + newList.size() + " items");
+            Log.d(TAG, "✅ Data updated with " + newList.size() + " items");
         } else {
-            Log.w(TAG, "Attempted to update with null list");
+            Log.w(TAG, "⚠️ Attempted to update with null list");
         }
     }
     
