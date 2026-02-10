@@ -37,27 +37,20 @@ public interface ApiService {
     @POST("users")
     Call<ApiResponse<User>> createUser(
             @Header("Authorization") String token, 
-            @Body User user
+            @Body Map<String, String> user
     );
     
     @PUT("users/{id}")
     Call<ApiResponse<User>> updateUser(
             @Header("Authorization") String token, 
             @Path("id") int userId, 
-            @Body User user
+            @Body Map<String, String> user
     );
     
     @DELETE("users/{id}")
     Call<ApiResponse<Object>> deleteUser(
             @Header("Authorization") String token, 
             @Path("id") int userId
-    );
-
-    // Users - استخدام Map للـ Request Body
-    @POST("users")
-    Call<ApiResponse<User>> createUserWithMap(
-            @Header("Authorization") String token, 
-            @Body Map<String, String> user
     );
     
     // ═══════════════════════════════════════════════════════════════
@@ -82,14 +75,14 @@ public interface ApiService {
     @POST("students")
     Call<ApiResponse<Student>> createStudent(
             @Header("Authorization") String token, 
-            @Body Student student
+            @Body Map<String, Object> student
     );
     
     @PUT("students/{id}")
     Call<ApiResponse<Student>> updateStudent(
             @Header("Authorization") String token, 
             @Path("id") int studentId, 
-            @Body Student student
+            @Body Map<String, Object> student
     );
     
     @DELETE("students/{id}")
@@ -108,28 +101,20 @@ public interface ApiService {
     @POST("halaqat")
     Call<ApiResponse<Halaqa>> createHalaqa(
             @Header("Authorization") String token, 
-            @Body Halaqa halaqa
+            @Body Map<String, String> halaqa
     );
     
     @PUT("halaqat/{id}")
     Call<ApiResponse<Halaqa>> updateHalaqa(
             @Header("Authorization") String token, 
             @Path("id") int halaqaId, 
-            @Body Halaqa halaqa
+            @Body Map<String, String> halaqa
     );
     
     @DELETE("halaqat/{id}")
     Call<ApiResponse<Object>> deleteHalaqa(
             @Header("Authorization") String token, 
             @Path("id") int halaqaId
-    );
-
- 
-    // Halaqat - استخدام Map للـ Request Body
-    @POST("halaqat")
-    Call<ApiResponse<Halaqa>> createHalaqaWithMap(
-            @Header("Authorization") String token, 
-            @Body Map<String, String> halaqa
     );
     
     // ═══════════════════════════════════════════════════════════════
@@ -154,14 +139,14 @@ public interface ApiService {
     @POST("fawj")
     Call<ApiResponse<Fawj>> createFawj(
             @Header("Authorization") String token, 
-            @Body Fawj fawj
+            @Body Map<String, Object> fawj
     );
     
     @PUT("fawj/{id}")
     Call<ApiResponse<Fawj>> updateFawj(
             @Header("Authorization") String token, 
             @Path("id") int fawjId, 
-            @Body Fawj fawj
+            @Body Map<String, Object> fawj
     );
     
     @DELETE("fawj/{id}")
