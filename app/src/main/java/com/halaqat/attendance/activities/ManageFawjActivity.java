@@ -97,6 +97,7 @@ public class ManageFawjActivity extends AppCompatActivity implements FawjAdapter
         Log.d(TAG, "Loading halaqat for spinner...");
         
         try {
+            // ✅ استخدام getAllHalaqat
             ApiClient.getApiService().getAllHalaqat(token)
                     .enqueue(new Callback<ApiResponse<List<Halaqa>>>() {
                         @Override
@@ -339,6 +340,7 @@ public class ManageFawjActivity extends AppCompatActivity implements FawjAdapter
             return;
         }
         
+        // ✅ Map<String, Object> - هذا صحيح لأن fawj يحتوي على integer (halaqa_id)
         Map<String, Object> fawjData = new HashMap<>();
         fawjData.put("name", name);
         fawjData.put("halaqa_id", halaqaId);
