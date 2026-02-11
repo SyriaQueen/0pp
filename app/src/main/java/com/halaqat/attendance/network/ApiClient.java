@@ -1,5 +1,7 @@
 package com.halaqat.attendance.network;
 
+import android.content.Context;
+import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.halaqat.attendance.utils.BooleanDeserializer;
@@ -11,16 +13,23 @@ import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
     
-    // ✅ قم بتغيير هذا الـ IP إلى IP الخاص بالـ Backend
-    private static final String BASE_URL = "http://fi11.bot-hosting.net:21316/api/";
+    private static final String TAG = "ApiClient";
     
-    private static Retrofit retrofit = null;
-    private static ApiService apiService = null;
+    // ⚡ غير هذا السطر حسب حالتك - ضع IP الخاص بالـ Backend
+    private static final String BASE_URL = "http://172.18.137.4:3000/api/";
     
-    public static Retrofit getClient() {
-        if (retrofit == null) {
+    private static Retrofit retrofit;
+    private static ApiService apiService;
+    
+    /**
+     * تهيئة ApiClient - يجب استدعاؤها في Application.onCreate()
+     */
+    public static void init(Context context) {
+        try {
             // إعداد Logging Interceptor
-            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+            HttpLoggingInterceptor logging = new HttpLoggingInterceptor(message -> {
+                Log.d(TAG, "OkHttp: " + message);
+            });
             logging.setLevel(HttpLoggingInterceptor.Level.BODY);
             
             // إعداد OkHttp Client
@@ -29,13 +38,15 @@ public class ApiClient {
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .readTimeout(30, TimeUnit.SECONDS)
                     .writeTimeout(30, TimeUnit.SECONDS)
+                    .retryOnConnectionFailure(true)
                     .build();
             
-            // ✅ إعداد Gson مع Custom Deserializer للـ Boolean
+            // ✅ إعداد Gson مع BooleanDeserializer لحل مشكلة 0/1 vs true/false
             Gson gson = new GsonBuilder()
                     .registerTypeAdapter(Boolean.class, new BooleanDeserializer())
                     .registerTypeAdapter(boolean.class, new BooleanDeserializer())
                     .setLenient()
+                    .serializeNulls()
                     .create();
             
             // إعداد Retrofit
@@ -44,20 +55,47 @@ public class ApiClient {
                     .client(client)
                     .addConverterFactory(GsonConverterFactory.create(gson))
                     .build();
+            
+            // إنشاء ApiService
+            apiService = retrofit.create(ApiService.class);
+            
+            Log.d(TAG, "✅ ApiClient initialized successfully");
+            Log.d(TAG, "📡 BASE_URL: " + BASE_URL);
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Error initializing ApiClient", e);
         }
-        return retrofit;
     }
     
+    /**
+     * الحصول على ApiService instance
+     */
     public static ApiService getApiService() {
         if (apiService == null) {
-            apiService = getClient().create(ApiService.class);
+            Log.e(TAG, "⚠️ ApiService is null! Call ApiClient.init() first");
+            throw new IllegalStateException("ApiClient must be initialized before use. Call ApiClient.init() in Application.onCreate()");
         }
         return apiService;
     }
     
-    // إعادة تعيين الـ Retrofit instance (مفيد عند تغيير الـ BASE_URL)
+    /**
+     * الحصول على BASE_URL
+     */
+    public static String getBaseUrl() {
+        return BASE_URL;
+    }
+    
+    /**
+     * إعادة تعيين ApiClient (مفيد عند تغيير الـ URL)
+     */
     public static void resetClient() {
         retrofit = null;
         apiService = null;
+    }
+    
+    /**
+     * التحقق من أن ApiClient تم تهيئته
+     */
+    public static boolean isInitialized() {
+        return apiService != null;
     }
 }
