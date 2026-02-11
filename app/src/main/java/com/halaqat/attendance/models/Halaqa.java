@@ -12,8 +12,9 @@ public class Halaqa {
     @SerializedName("description")
     private String description;
     
+    // ✅ الآن هذا سيعمل مع 0/1 و true/false
     @SerializedName("is_active")
-    private Boolean isActive;
+    private boolean isActive;
     
     @SerializedName("created_at")
     private String createdAt;
@@ -52,7 +53,7 @@ public class Halaqa {
     }
     
     public boolean isActive() { 
-        return isActive != null ? isActive : true; 
+        return isActive; 
     }
     
     public void setActive(boolean active) { 
