@@ -8,6 +8,7 @@
         <item name="colorOnSecondary">@color/white</item>
         <item name="android:statusBarColor">@color/primary_dark</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="colorOnSurfaceVariant">@color/black</item>
     </style>
 
     <style name="Theme.HalaqatAttendance.Splash" parent="Theme.MaterialComponents.DayNight.NoActionBar">
