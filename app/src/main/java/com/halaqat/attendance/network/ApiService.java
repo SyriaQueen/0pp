@@ -92,11 +92,15 @@ public interface ApiService {
     );
     
     // ═══════════════════════════════════════════════════════════════
-    // Halaqat APIs
+    // Halaqat APIs - تم إضافة getAllHalaqat
     // ═══════════════════════════════════════════════════════════════
     
     @GET("halaqat")
     Call<ApiResponse<List<Halaqa>>> getHalaqat(@Header("Authorization") String token);
+    
+    // ✅ تم إضافة هذه الدالة المفقودة
+    @GET("halaqat")
+    Call<ApiResponse<List<Halaqa>>> getAllHalaqat(@Header("Authorization") String token);
     
     @POST("halaqat")
     Call<ApiResponse<Halaqa>> createHalaqa(
