@@ -1,11 +1,14 @@
 package com.halaqat.attendance.activities;
 
-import android.app.AlertDialog;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.*;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -84,86 +87,105 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
     }
     
     private void loadHalaqat() {
+        if (!isActivityValid()) {
+            return;
+        }
+        
         showLoading(true);
         
         String token = prefManager.getAuthToken();
         if (token == null || token.isEmpty()) {
             showLoading(false);
-            showError("خطأ في المصادقة");
+            showError("خطأ في المصادقة. الرجاء تسجيل الدخول مرة أخرى");
             return;
         }
         
         Log.d(TAG, "Loading halaqat with token...");
         
         try {
-            ApiClient.getApiService().getHalaqat(token)
+            ApiClient.getApiService().getAllHalaqat(token)
                     .enqueue(new Callback<ApiResponse<List<Halaqa>>>() {
                         @Override
-                        public void onResponse(Call<ApiResponse<List<Halaqa>>> call, 
+                        public void onResponse(Call<ApiResponse<List<Halaqa>>> call,
                                              Response<ApiResponse<List<Halaqa>>> response) {
-                            showLoading(false);
                             
-                            Log.d(TAG, "Response code: " + response.code());
+                            if (!isActivityValid()) {
+                                return;
+                            }
                             
-                            if (response.isSuccessful() && response.body() != null) {
-                                ApiResponse<List<Halaqa>> apiResponse = response.body();
+                            safeRunOnUiThread(() -> {
+                                showLoading(false);
                                 
-                                Log.d(TAG, "Response success: " + apiResponse.isSuccess());
-                                Log.d(TAG, "Response message: " + apiResponse.getMessage());
+                                Log.d(TAG, "Response code: " + response.code());
                                 
-                                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
-                                    List<Halaqa> halaqat = apiResponse.getData();
+                                if (response.isSuccessful() && response.body() != null) {
+                                    ApiResponse<List<Halaqa>> apiResponse = response.body();
                                     
-                                    Log.d(TAG, "Halaqat loaded: " + halaqat.size());
+                                    Log.d(TAG, "Response success: " + apiResponse.isSuccess());
+                                    Log.d(TAG, "Response message: " + apiResponse.getMessage());
                                     
-                                    if (halaqat.isEmpty()) {
-                                        showNoData(true);
+                                    if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                                        List<Halaqa> halaqat = apiResponse.getData();
+                                        
+                                        Log.d(TAG, "Halaqat loaded: " + halaqat.size());
+                                        
+                                        if (halaqat.isEmpty()) {
+                                            showNoData(true);
+                                        } else {
+                                            showNoData(false);
+                                            if (adapter != null) {
+                                                adapter.updateData(halaqat);
+                                            }
+                                        }
                                     } else {
-                                        showNoData(false);
-                                        adapter.updateData(halaqat);
+                                        String message = apiResponse.getMessage();
+                                        showError(message != null ? message : "فشل تحميل الحلقات");
                                     }
                                 } else {
-                                    String message = apiResponse.getMessage();
-                                    showError(message != null ? message : "فشل تحميل الحلقات");
-                                }
-                            } else {
-                                Log.e(TAG, "Response not successful: " + response.code());
-                                
-                                try {
-                                    if (response.errorBody() != null) {
-                                        String errorBody = response.errorBody().string();
-                                        Log.e(TAG, "Error body: " + errorBody);
+                                    Log.e(TAG, "Response not successful: " + response.code());
+                                    
+                                    try {
+                                        if (response.errorBody() != null) {
+                                            String errorBody = response.errorBody().string();
+                                            Log.e(TAG, "Error body: " + errorBody);
+                                        }
+                                    } catch (Exception e) {
+                                        Log.e(TAG, "Error reading error body", e);
                                     }
-                                } catch (Exception e) {
-                                    Log.e(TAG, "Error reading error body", e);
+                                    
+                                    handleErrorResponse(response.code());
                                 }
-                                
-                                handleErrorResponse(response.code());
-                            }
+                            });
                         }
                         
                         @Override
                         public void onFailure(Call<ApiResponse<List<Halaqa>>> call, Throwable t) {
-                            showLoading(false);
-                            Log.e(TAG, "Network error: " + t.getMessage(), t);
-                            
-                            String errorMessage = "خطأ في الاتصال بالخادم";
-                            if (t.getMessage() != null) {
-                                if (t.getMessage().contains("Unable to resolve host")) {
-                                    errorMessage = "تعذر الاتصال بالخادم";
-                                } else if (t.getMessage().contains("timeout")) {
-                                    errorMessage = "انتهت مهلة الاتصال";
-                                } else if (t.getMessage().contains("Connection refused")) {
-                                    errorMessage = "الخادم غير متاح. تأكد من تشغيل Backend";
-                                }
+                            if (!isActivityValid()) {
+                                return;
                             }
                             
-                            showError(errorMessage + "\n" + t.getMessage());
+                            safeRunOnUiThread(() -> {
+                                showLoading(false);
+                                Log.e(TAG, "Network error: " + t.getMessage(), t);
+                                
+                                String errorMessage = "خطأ في الاتصال بالخادم";
+                                if (t.getMessage() != null) {
+                                    if (t.getMessage().contains("Unable to resolve host")) {
+                                        errorMessage = "تعذر الاتصال بالخادم. تحقق من الإنترنت";
+                                    } else if (t.getMessage().contains("timeout")) {
+                                        errorMessage = "انتهت مهلة الاتصال";
+                                    } else if (t.getMessage().contains("Connection refused")) {
+                                        errorMessage = "الخادم غير متاح. تأكد من تشغيل Backend";
+                                    }
+                                }
+                                
+                                showError(errorMessage + "\n" + t.getMessage());
+                            });
                         }
                     });
         } catch (Exception e) {
             showLoading(false);
-            Log.e(TAG, "Exception loading halaqat", e);
+            Log.e(TAG, "Exception while loading halaqat", e);
             showError("حدث خطأ: " + e.getMessage());
         }
     }
@@ -194,104 +216,86 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
             View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_halaqa, null);
             
             EditText etName = dialogView.findViewById(R.id.et_name);
-            EditText etDescription = dialogView.findViewById(R.id.et_description);
+            EditText etLocation = dialogView.findViewById(R.id.et_location);
             
             new AlertDialog.Builder(this)
                     .setTitle("إضافة حلقة جديدة")
                     .setView(dialogView)
                     .setPositiveButton("إضافة", (dialog, which) -> {
                         String name = etName.getText().toString().trim();
-                        String description = etDescription.getText().toString().trim();
+                        String location = etLocation.getText().toString().trim();
                         
                         if (name.isEmpty()) {
                             showError("الرجاء إدخال اسم الحلقة");
                             return;
                         }
                         
-                        createHalaqa(name, description);
+                        addHalaqa(name, location);
                     })
                     .setNegativeButton("إلغاء", null)
                     .show();
         } catch (Exception e) {
-            Log.e(TAG, "Error showing dialog", e);
-            showError("حدث خطأ");
+            Log.e(TAG, "Error showing add dialog", e);
+            showError("خطأ في عرض النافذة: " + e.getMessage());
         }
     }
     
-    private void createHalaqa(String name, String description) {
-        try {
-            String token = prefManager.getAuthToken();
-            if (token == null) {
-                showError("خطأ في المصادقة");
-                return;
-            }
-            
-            // استخدام Map بدلاً من Object
-            Map<String, String> halaqaMap = new HashMap<>();
-            halaqaMap.put("name", name);
-            if (description != null && !description.isEmpty()) {
-                halaqaMap.put("description", description);
-            }
-            
-            Log.d(TAG, "Creating halaqa: " + name);
-            
-            ApiClient.getApiService().createHalaqa(token, halaqaMap)
-                    .enqueue(new Callback<ApiResponse<Halaqa>>() {
-                        @Override
-                        public void onResponse(Call<ApiResponse<Halaqa>> call, 
-                                             Response<ApiResponse<Halaqa>> response) {
+    private void addHalaqa(String name, String location) {
+        String token = prefManager.getAuthToken();
+        if (token == null) {
+            showError("خطأ في المصادقة");
+            return;
+        }
+        
+        Map<String, Object> halaqaData = new HashMap<>();
+        halaqaData.put("name", name);
+        halaqaData.put("location", location);
+        halaqaData.put("is_active", true);
+        
+        ApiClient.getApiService().createHalaqa(token, halaqaData)
+                .enqueue(new Callback<ApiResponse<Halaqa>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<Halaqa>> call,
+                                         Response<ApiResponse<Halaqa>> response) {
+                        if (!isActivityValid()) {
+                            return;
+                        }
+                        
+                        safeRunOnUiThread(() -> {
                             if (response.isSuccessful() && response.body() != null) {
                                 ApiResponse<Halaqa> apiResponse = response.body();
                                 if (apiResponse.isSuccess()) {
-                                    showSuccess("تم إضافة الحلقة بنجاح");
+                                    showSuccess("تمت الإضافة بنجاح");
                                     loadHalaqat();
                                 } else {
                                     showError(apiResponse.getMessage());
                                 }
                             } else {
-                                Log.e(TAG, "Create halaqa failed: " + response.code());
-                                
-                                try {
-                                    if (response.errorBody() != null) {
-                                        String errorBody = response.errorBody().string();
-                                        Log.e(TAG, "Error body: " + errorBody);
-                                    }
-                                } catch (Exception e) {
-                                    Log.e(TAG, "Error reading error body", e);
-                                }
-                                
-                                showError("فشل إضافة الحلقة");
+                                showError("فشلت الإضافة");
                             }
+                        });
+                    }
+                    
+                    @Override
+                    public void onFailure(Call<ApiResponse<Halaqa>> call, Throwable t) {
+                        if (!isActivityValid()) {
+                            return;
                         }
                         
-                        @Override
-                        public void onFailure(Call<ApiResponse<Halaqa>> call, Throwable t) {
-                            Log.e(TAG, "Create halaqa error", t);
+                        safeRunOnUiThread(() -> {
                             showError("خطأ في الاتصال: " + t.getMessage());
-                        }
-                    });
-        } catch (Exception e) {
-            Log.e(TAG, "Error creating halaqa", e);
-            showError("حدث خطأ");
-        }
+                        });
+                    }
+                });
     }
     
     @Override
     public void onEditHalaqa(Halaqa halaqa) {
-        if (halaqa == null) {
-            showError("خطأ: بيانات غير صالحة");
-            return;
-        }
-        showError("قريباً");
+        showSuccess("تعديل الحلقة قيد التطوير");
     }
     
     @Override
     public void onDeleteHalaqa(Halaqa halaqa) {
-        if (halaqa == null) {
-            showError("خطأ: بيانات غير صالحة");
-            return;
-        }
-        
         new AlertDialog.Builder(this)
                 .setTitle("تأكيد الحذف")
                 .setMessage("هل أنت متأكد من حذف " + halaqa.getName() + "؟")
@@ -310,24 +314,36 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
         ApiClient.getApiService().deleteHalaqa(token, halaqaId)
                 .enqueue(new Callback<ApiResponse<Object>>() {
                     @Override
-                    public void onResponse(Call<ApiResponse<Object>> call, 
+                    public void onResponse(Call<ApiResponse<Object>> call,
                                          Response<ApiResponse<Object>> response) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            ApiResponse<Object> apiResponse = response.body();
-                            if (apiResponse.isSuccess()) {
-                                showSuccess("تم الحذف بنجاح");
-                                loadHalaqat();
-                            } else {
-                                showError(apiResponse.getMessage());
-                            }
-                        } else {
-                            showError("فشل الحذف");
+                        if (!isActivityValid()) {
+                            return;
                         }
+                        
+                        safeRunOnUiThread(() -> {
+                            if (response.isSuccessful() && response.body() != null) {
+                                ApiResponse<Object> apiResponse = response.body();
+                                if (apiResponse.isSuccess()) {
+                                    showSuccess("تم الحذف بنجاح");
+                                    loadHalaqat();
+                                } else {
+                                    showError(apiResponse.getMessage());
+                                }
+                            } else {
+                                showError("فشل الحذف");
+                            }
+                        });
                     }
                     
                     @Override
                     public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
-                        showError("خطأ في الاتصال");
+                        if (!isActivityValid()) {
+                            return;
+                        }
+                        
+                        safeRunOnUiThread(() -> {
+                            showError("خطأ في الاتصال: " + t.getMessage());
+                        });
                     }
                 });
     }
@@ -353,13 +369,27 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
     private void showError(String message) {
         if (message != null && !message.isEmpty()) {
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-            Log.e(TAG, message);
+            Log.e(TAG, "Error: " + message);
         }
     }
     
     private void showSuccess(String message) {
-        if (message != null) {
+        if (message != null && !message.isEmpty()) {
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    private boolean isActivityValid() {
+        return !isFinishing() && !isDestroyed();
+    }
+    
+    private void safeRunOnUiThread(Runnable action) {
+        if (isActivityValid()) {
+            try {
+                runOnUiThread(action);
+            } catch (Exception e) {
+                Log.e(TAG, "Error running on UI thread", e);
+            }
         }
     }
     
