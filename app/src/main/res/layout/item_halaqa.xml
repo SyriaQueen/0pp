@@ -35,7 +35,7 @@
                 android:layout_height="wrap_content"
                 android:text="الوصف"
                 android:textSize="14sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?attr/colorOnSurface"
                 android:layout_marginTop="4dp" />
 
         </LinearLayout>
