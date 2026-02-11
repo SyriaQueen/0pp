@@ -24,6 +24,7 @@ public class Student {
     @SerializedName("notes")
     private String notes;
     
+    // ✅ الآن هذا سيعمل مع 0/1 و true/false
     @SerializedName("is_active")
     private boolean isActive;
     
@@ -36,7 +37,9 @@ public class Student {
     private boolean isSelected = false;
     
     // Constructors
-    public Student() {}
+    public Student() {
+        this.isActive = true;
+    }
     
     // Getters and Setters
     public int getId() { return id; }
