@@ -258,14 +258,15 @@ public class ManageUsersActivity extends AppCompatActivity implements UsersAdapt
             return;
         }
         
-        Map<String, Object> userData = new HashMap<>();
+        // ✅ تم تغيير Map<String, Object> إلى Map<String, String>
+        Map<String, String> userData = new HashMap<>();
         userData.put("username", username);
         userData.put("full_name", fullName);
         userData.put("password", password);
         userData.put("email", email);
         userData.put("phone", phone);
         userData.put("role", role);
-        userData.put("is_active", true);
+        userData.put("is_active", "true");
         
         ApiClient.getApiService().createUser(token, userData)
                 .enqueue(new Callback<ApiResponse<User>>() {
