@@ -103,6 +103,7 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
         Log.d(TAG, "Loading halaqat with token...");
         
         try {
+            // ✅ استخدام getAllHalaqat بدلاً من getHalaqat
             ApiClient.getApiService().getAllHalaqat(token)
                     .enqueue(new Callback<ApiResponse<List<Halaqa>>>() {
                         @Override
@@ -216,6 +217,7 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
             View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_halaqa, null);
             
             EditText etName = dialogView.findViewById(R.id.et_name);
+            // ✅ الآن et_location موجود في XML
             EditText etLocation = dialogView.findViewById(R.id.et_location);
             
             new AlertDialog.Builder(this)
@@ -247,10 +249,11 @@ public class ManageHalaqatActivity extends AppCompatActivity implements HalaqatA
             return;
         }
         
-        Map<String, Object> halaqaData = new HashMap<>();
+        // ✅ تم تغيير Map<String, Object> إلى Map<String, String>
+        Map<String, String> halaqaData = new HashMap<>();
         halaqaData.put("name", name);
         halaqaData.put("location", location);
-        halaqaData.put("is_active", true);
+        halaqaData.put("is_active", "true");
         
         ApiClient.getApiService().createHalaqa(token, halaqaData)
                 .enqueue(new Callback<ApiResponse<Halaqa>>() {
